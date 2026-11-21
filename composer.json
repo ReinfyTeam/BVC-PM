@@ -15,9 +15,7 @@
         }
     ],
     "scripts": {
-        "analyze": "vendor/bin/phpstan analyse src --level=max",
-        "build": "php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=BedrockVoiceChat.phar",
-        "build-source": "php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -o=./output/"
+        "analyze": "vendor/bin/phpstan analyse src --level=max"
     },
     "autoload": {
         "psr-4": {
@@ -26,13 +24,10 @@
     },
     "require-dev": {
         "axolotl-pm/pocketmine-mp": "5.51.1",
-        "sof3/pharynx": "^0.3.0",
+        "paroxity/commando": "dev-master",
+        "muqsit/simple-packet-handler": "0.1.6",
+        "jojoe77777/libformapi": "dev-main",
         "phpstan/phpstan": "^2.1",
         "friendsofphp/php-cs-fixer": "^3.58"
-    },
-	"require": {
-		"paroxity/commando": "dev-master",
-		"muqsit/simple-packet-handler": "0.1.6",
-		"jojoe77777/libformapi": "dev-main"
 	}
 }

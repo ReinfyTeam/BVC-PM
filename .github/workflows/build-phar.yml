@@ -1,4 +1,4 @@
-name: Build and validate BVC plugin
+name: Build and validate BedrockVoiceChat plugin
 
 on:
   push:
@@ -12,28 +12,46 @@ permissions:
 
 jobs:
   build:
-    name: Build and validate BedrockVoiceChat plugin
+    name: Build downloadable PHAR
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
-
-      - name: Set up PHP for PocketMine-MP
-        uses: pmmp/setup-php-action@e031917a35223b96cba12fe19ace0765c91f6bfb
+      - name: Check out plugin source and locked virions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          php-version: 8.2
-          pm-version-major: 5
+          submodules: recursive
+          persist-credentials: false
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --ignore-platform-req=ext-webrtc
+      - name: Adapt PacketHandler for DevTools shading
+        run: git -C virions/PacketHandler apply ../../patches/simple-packet-handler-devtools.patch
 
-      - name: Build plugin PHAR
-        run: composer run-script build
+      - name: Check out Axolotl-PM PHP setup helper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: axolotl-pm/setup-php-action
+          ref: 1.0.0
+          path: .devtools-dependencies/setup-php-action
+          persist-credentials: false
+
+      - name: Set up Axolotl-PM PHP on Node.js 24
+        shell: bash
+        env:
+          INPUT_PHP-VERSION: "8.4"
+          INPUT_PM-VERSION-MAJOR: "5"
+          INPUT_INSTALL-PATH: ./.php-bin
+        run: node "$GITHUB_WORKSPACE/.devtools-dependencies/setup-php-action/dist/index.js"
+
+      - name: Build standalone plugin PHAR with DevTools
+        id: build
+        uses: AxolotlBucketLabs/DevTools@v4
+        with:
+          project: .
+          virions: virions
+          output: build
 
       - name: Upload plugin PHAR artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: BedrockVoiceChat
-          path: build/BedrockVoiceChat.phar
+          path: ${{ steps.build.outputs.phar }}
           if-no-files-found: error

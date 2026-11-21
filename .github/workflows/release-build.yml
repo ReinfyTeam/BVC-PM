@@ -41,7 +41,7 @@ jobs:
           for attempt in {1..30}; do
             build_run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-phar.yml/runs?head_sha=${GITHUB_SHA}&status=success&per_page=20" --jq "[.workflow_runs[] | select(.head_sha == \"${GITHUB_SHA}\" and .conclusion == \"success\") | .id][0]")"
             if [ "${build_run_id}" != "null" ] && [ -n "${build_run_id}" ]; then
-              gh run download "${build_run_id}" --repo "${GITHUB_REPOSITORY}" --name Zuri --dir build
+              gh run download "${build_run_id}" --repo "${GITHUB_REPOSITORY}" --name BedrockVoiceChat --dir build
               exit 0
             fi
             sleep 10
@@ -66,7 +66,7 @@ jobs:
           name: ${{ steps.meta.outputs.title }}
           body_path: release-notes.md
           target_commitish: ${{ steps.meta.outputs.target }}
-          files: build/Zuri.phar
+          files: build/BedrockVoiceChat.phar
           fail_on_unmatched_files: true
           prerelease: ${{ steps.meta.outputs.prerelease }}
           make_latest: ${{ steps.meta.outputs.make_latest }}
