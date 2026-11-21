@@ -17,7 +17,7 @@ jobs:
       php-version: '8.4'
       pm-version-major: '5'
       phpstan: max
-      artifact-name: FakeWaterdogTransfer-release-${{ github.sha }}
+      artifact-name: BedrockVoiceChat-release-${{ github.sha }}
 
   publish-release:
     name: Publish draft GitHub release
@@ -30,7 +30,7 @@ jobs:
       - name: Download verified PHAR artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
-          name: FakeWaterdogTransfer-release-${{ github.sha }}
+          name: BedrockVoiceChat-release-${{ github.sha }}
           path: release
 
       - name: Create draft GitHub release
@@ -53,10 +53,10 @@ jobs:
           if [[ -z "$notes" ]]; then
             notes="Release v$version"
           fi
-          test -f release/FakeWaterdogTransfer.phar
-          gh release create "v$version" release/FakeWaterdogTransfer.phar \
+          test -f release/BedrockVoiceChat.phar
+          gh release create "v$version" release/BedrockVoiceChat.phar \
             --repo "$REPOSITORY" \
             --target "$SHA" \
-            --title "FakeWaterdogTransfer: v$version" \
+            --title "BedrockVoiceChat: v$version" \
             --notes "$notes" \
             --draft
