@@ -32,12 +32,13 @@ $bvcPlugin = $this->getServer()->getPluginManager()->getPlugin("BedrockVoiceChat
 if ($bvcPlugin instanceof BVC && $bvcPlugin->isEnabled()) {
     $bvc = BVC::getInstance();
     
-    // Access core services
-    $userManager     = $bvc->getUserManager();     // User state tracking & queries
-    $voiceService    = $bvc->voiceService;        // Backend voice control (mute, deafen, volume, etc.)
-    $audioService    = $bvc->audioService;        // Jukebox audio playback & discs
-    $positionService = $bvc->positionService;     // Spatial audio & positional updates
-    $configManager   = $bvc->config;              // Plugin configuration & messages
+    // Access core services via public getters
+    $userManager     = $bvc->getUserManager();        // User state tracking & queries
+    $voiceService    = $bvc->getVoiceService();       // Backend voice control (mute, deafen, volume, etc.)
+    $audioService    = $bvc->getAudioService();       // Jukebox audio playback & discs
+    $positionService = $bvc->getPositionService();    // Spatial audio & positional updates
+    $httpClient      = $bvc->getHttpClient();         // Async HTTP client
+    $configManager   = $bvc->getConfigManager();      // Plugin configuration & messages
 }
 ```
 
@@ -135,7 +136,7 @@ $userManager->syncAll(function(int $syncedCount): void {
 `VoiceService` provides high-level control methods for manipulating player voice settings, voice groups, and jukebox global settings.
 
 ```php
-$voiceService = BVC::getInstance()->voiceService;
+$voiceService = BVC::getInstance()->getVoiceService();
 ```
 
 ### 4.1 Player Voice Controls
@@ -176,7 +177,7 @@ $voiceService = BVC::getInstance()->voiceService;
 `AudioService` manages spatial audio discs, jukebox interactions, and audio events.
 
 ```php
-$audioService = BVC::getInstance()->audioService;
+$audioService = BVC::getInstance()->getAudioService();
 ```
 
 ### 5.1 Creating and Giving Custom BVC Discs
@@ -282,7 +283,7 @@ $event->call();
 
 if (!$event->isCancelled()) {
     // Event passed all listener checks; proceed with action
-    BVC::getInstance()->voiceService->toggleMute($player, true);
+    BVC::getInstance()->getVoiceService()->toggleMute($player, true);
 }
 ```
 
@@ -300,7 +301,7 @@ use ReinfyTeam\BedrockVoiceChat\BVC;
 
 class MiniGameManager {
     public function onGameStart(array $redTeam, array $blueTeam): void {
-        $voiceService = BVC::getInstance()->voiceService;
+        $voiceService = BVC::getInstance()->getVoiceService();
         
         // Join red team to group channel
         foreach ($redTeam as $player) {
@@ -314,7 +315,7 @@ class MiniGameManager {
     }
 
     public function onGameEnd(array $allPlayers): void {
-        $voiceService = BVC::getInstance()->voiceService;
+        $voiceService = BVC::getInstance()->getVoiceService();
         foreach ($allPlayers as $player) {
             $voiceService->leaveGroup($player);
         }

@@ -46,8 +46,8 @@ final class UISubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.ui', 'bvc.ui'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.ui', 'bvc.ui'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 	}
 
 	/**
@@ -55,10 +55,10 @@ final class UISubCommand extends BaseSubCommand {
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
-		$form = new MainForm($this->plugin, $this->plugin->config);
+		$form = new MainForm($this->plugin, $this->plugin->getConfigManager());
 		$sender->sendForm($form);
 	}
 }

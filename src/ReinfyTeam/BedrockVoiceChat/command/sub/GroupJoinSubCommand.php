@@ -48,8 +48,8 @@ final class GroupJoinSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.group', 'bvc.group'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.group', 'bvc.group'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new RawStringArgument('code'));
 	}
 
@@ -58,7 +58,7 @@ final class GroupJoinSubCommand extends BaseSubCommand {
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
 		$code = $args['code'] ?? null;
@@ -66,9 +66,9 @@ final class GroupJoinSubCommand extends BaseSubCommand {
 			$code = null;
 		}
 		if ($code === null || trim($code) === '') {
-			$sender->sendMessage($this->plugin->config->message('group_join_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('group_join_usage'));
 			return;
 		}
-		$this->plugin->voiceService->joinGroup($sender, (string) $code);
+		$this->plugin->getVoiceService()->joinGroup($sender, (string) $code);
 	}
 }

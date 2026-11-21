@@ -51,8 +51,8 @@ final class VolumeSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.volume', 'bvc.volume'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.volume', 'bvc.volume'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new IntegerArgument('level'));
 		$this->registerArgument(0, new TargetPlayerArgument(false, 'player'));
 		$this->registerArgument(1, new IntegerArgument('level', true));
@@ -66,17 +66,17 @@ final class VolumeSubCommand extends BaseSubCommand {
 		$targetRaw = $args['player'] ?? null;
 
 		if (!is_int($level)) {
-			$sender->sendMessage($this->plugin->config->message('volume_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('volume_usage'));
 			return;
 		}
 
 		// Case 1: single argument -> /bvc volume <level> for caller
 		if (!is_string($targetRaw) || $targetRaw === '') {
 			if (!$sender instanceof Player) {
-				$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 				return;
 			}
-			$this->plugin->voiceService->setVolumeFor($sender, $sender, $level);
+			$this->plugin->getVoiceService()->setVolumeFor($sender, $sender, $level);
 			return;
 		}
 
@@ -84,17 +84,17 @@ final class VolumeSubCommand extends BaseSubCommand {
 		$targetName = $targetRaw;
 		if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 			if (!Util::isAdmin($sender, $this->plugin)) {
-				$sender->sendMessage($this->plugin->config->message('only_self_allowed'));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('only_self_allowed'));
 				return;
 			}
 		}
 
 		$target = Util::getOnlinePlayer($targetName);
 		if ($target === null) {
-			$sender->sendMessage($this->plugin->config->message('player_not_found', ['name' => $targetName]));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_not_found', ['name' => $targetName]));
 			return;
 		}
 
-		$this->plugin->voiceService->setVolumeFor($sender, $target, $level);
+		$this->plugin->getVoiceService()->setVolumeFor($sender, $target, $level);
 	}
 }

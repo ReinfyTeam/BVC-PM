@@ -46,8 +46,8 @@ final class JukeboxVolumeSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc', 'bvc.use'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc', 'bvc.use'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new IntegerArgument('level'));
 	}
 
@@ -57,9 +57,9 @@ final class JukeboxVolumeSubCommand extends BaseSubCommand {
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$level = $args['level'] ?? null;
 		if ($level === null || !is_numeric($level)) {
-			$sender->sendMessage($this->plugin->config->message('jukebox_volume_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('jukebox_volume_usage'));
 			return;
 		}
-		$this->plugin->voiceService->setJukeboxVolume($sender, (int) $level);
+		$this->plugin->getVoiceService()->setJukeboxVolume($sender, (int) $level);
 	}
 }

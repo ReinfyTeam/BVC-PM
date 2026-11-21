@@ -50,8 +50,8 @@ final class QuerySubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.query', 'bvc.query'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.query', 'bvc.query'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new TargetPlayerArgument(true, 'player'));
 	}
 
@@ -66,19 +66,19 @@ final class QuerySubCommand extends BaseSubCommand {
 		if ($targetName !== '') {
 			if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 				if (!Util::isAdmin($sender, $this->plugin)) {
-					$sender->sendMessage($this->plugin->config->message('only_self_allowed'));
+					$sender->sendMessage($this->plugin->getConfigManager()->message('only_self_allowed'));
 					return;
 				}
 			}
 			$target = Util::resolveOnlinePlayer($targetName) ?? $targetName;
-			$this->plugin->voiceService->getStatusFor($sender, $target);
+			$this->plugin->getVoiceService()->getStatusFor($sender, $target);
 			return;
 		}
 
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
-		$this->plugin->voiceService->getStatus($sender);
+		$this->plugin->getVoiceService()->getStatus($sender);
 	}
 }

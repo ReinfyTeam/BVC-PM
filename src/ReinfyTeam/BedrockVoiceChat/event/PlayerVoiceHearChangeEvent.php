@@ -45,7 +45,8 @@ class PlayerVoiceHearChangeEvent extends BVCEvent implements Cancellable {
 		private Player $player,
 		private string $target,
 		private bool $heard
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

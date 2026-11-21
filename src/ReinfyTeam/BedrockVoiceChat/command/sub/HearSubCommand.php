@@ -51,8 +51,8 @@ final class HearSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.hear', 'bvc.hear'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.hear', 'bvc.hear'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new OnOffArgument('state'));
 		$this->registerArgument(0, new TargetPlayerArgument(false, 'player'));
 		$this->registerArgument(1, new OnOffArgument('state', true));
@@ -66,17 +66,17 @@ final class HearSubCommand extends BaseSubCommand {
 		$targetRaw = $args['player'] ?? null;
 
 		if (!is_bool($state)) {
-			$sender->sendMessage($this->plugin->config->message('hear_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('hear_usage'));
 			return;
 		}
 
 		// Case 1: single argument -> /bvc hear <on|off> for caller
 		if (!is_string($targetRaw) || $targetRaw === '') {
 			if (!$sender instanceof Player) {
-				$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 				return;
 			}
-			$this->plugin->voiceService->toggleHearingAll($sender, $state);
+			$this->plugin->getVoiceService()->toggleHearingAll($sender, $state);
 			return;
 		}
 
@@ -84,16 +84,16 @@ final class HearSubCommand extends BaseSubCommand {
 		$targetName = $targetRaw;
 		if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 			if (!Util::isAdmin($sender, $this->plugin)) {
-				$sender->sendMessage($this->plugin->config->message('only_self_allowed'));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('only_self_allowed'));
 				return;
 			}
 		}
 
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
 
-		$this->plugin->voiceService->toggleHear($sender, $targetName, $state);
+		$this->plugin->getVoiceService()->toggleHear($sender, $targetName, $state);
 	}
 }

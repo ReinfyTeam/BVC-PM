@@ -46,7 +46,8 @@ class PlayerVoiceMuteEvent extends BVCEvent implements Cancellable {
 		private Player $player,
 		private bool $muted,
 		private ?CommandSender $initiator = null
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

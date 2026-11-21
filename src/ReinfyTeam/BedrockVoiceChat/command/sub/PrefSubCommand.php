@@ -53,8 +53,8 @@ final class PrefSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.pref', 'bvc.pref'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.pref', 'bvc.pref'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new IntegerArgument('volume'));
 		$this->registerArgument(0, new TargetPlayerArgument(false, 'player'));
 		$this->registerArgument(1, new OnOffArgument('heard', true));
@@ -71,18 +71,18 @@ final class PrefSubCommand extends BaseSubCommand {
 		$targetRaw = $args['player'] ?? null;
 
 		if (!is_int($volume) || !is_bool($heard)) {
-			$sender->sendMessage($this->plugin->config->message('pref_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('pref_usage'));
 			return;
 		}
 
 		// Case 1: /bvc pref <volume 0-150> <heard on|off> for caller
 		if (!is_string($targetRaw) || $targetRaw === '') {
 			if (!$sender instanceof Player) {
-				$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 				return;
 			}
-			$this->plugin->voiceService->setVolume($sender, $sender->getName(), $volume);
-			$this->plugin->voiceService->toggleHearingAll($sender, $heard);
+			$this->plugin->getVoiceService()->setVolume($sender, $sender->getName(), $volume);
+			$this->plugin->getVoiceService()->toggleHearingAll($sender, $heard);
 			return;
 		}
 
@@ -90,17 +90,17 @@ final class PrefSubCommand extends BaseSubCommand {
 		$targetName = $targetRaw;
 		if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 			if (!Util::isAdmin($sender, $this->plugin)) {
-				$sender->sendMessage($this->plugin->config->message('only_self_allowed'));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('only_self_allowed'));
 				return;
 			}
 		}
 
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
 
-		$this->plugin->voiceService->setVolume($sender, $targetName, $volume);
-		$this->plugin->voiceService->toggleHear($sender, $targetName, $heard);
+		$this->plugin->getVoiceService()->setVolume($sender, $targetName, $volume);
+		$this->plugin->getVoiceService()->toggleHear($sender, $targetName, $heard);
 	}
 }

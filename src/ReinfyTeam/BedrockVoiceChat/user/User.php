@@ -92,7 +92,7 @@ final class User {
 		if ($sendToBackend) {
 			$player = $this->getPlayer();
 			if ($player !== null) {
-				BVC::getInstance()->voiceService->toggleMute($player, $muted);
+				BVC::getInstance()->getVoiceService()->toggleMute($player, $muted);
 			}
 		}
 		return $this;
@@ -108,7 +108,7 @@ final class User {
 		if ($sendToBackend) {
 			$player = $this->getPlayer();
 			if ($player !== null) {
-				BVC::getInstance()->voiceService->toggleDeafen($player, $deafened);
+				BVC::getInstance()->getVoiceService()->toggleDeafen($player, $deafened);
 			}
 		}
 		return $this;
@@ -144,7 +144,7 @@ final class User {
 		if ($sendToBackend) {
 			$player = $this->getPlayer();
 			if ($player !== null) {
-				BVC::getInstance()->voiceService->toggleRecording($player, $recording);
+				BVC::getInstance()->getVoiceService()->toggleRecording($player, $recording);
 			}
 		}
 		return $this;
@@ -169,7 +169,7 @@ final class User {
 		if ($sendToBackend) {
 			$player = $this->getPlayer();
 			if ($player !== null) {
-				BVC::getInstance()->voiceService->toggleHearingAll($player, $hearingOthers);
+				BVC::getInstance()->getVoiceService()->toggleHearingAll($player, $hearingOthers);
 			}
 		}
 		return $this;
@@ -192,7 +192,7 @@ final class User {
 		if ($sendToBackend) {
 			$player = $this->getPlayer();
 			if ($player !== null) {
-				BVC::getInstance()->voiceService->setVolume($player, $this->name, $this->getVolumePercent());
+				BVC::getInstance()->getVoiceService()->setVolume($player, $this->name, $this->getVolumePercent());
 			}
 		}
 		return $this;

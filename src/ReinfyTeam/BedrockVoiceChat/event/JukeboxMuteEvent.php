@@ -44,7 +44,8 @@ class JukeboxMuteEvent extends BVCEvent implements Cancellable {
 	public function __construct(
 		private CommandSender $sender,
 		private bool $muted
-	) {}
+	) {
+	}
 
 	public function getSender() : CommandSender {
 		return $this->sender;

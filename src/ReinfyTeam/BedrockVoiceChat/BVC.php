@@ -54,16 +54,23 @@ use function trim;
  * Fully asynchronous: all HTTP requests run on a dedicated background worker
  * thread (HttpWorkerThread), never blocking the server's main thread.
  * Designed to handle 100+ players with batched position updates.
+ *
+ * @property-read ConfigManager $config
+ * @property-read HttpClient $http
+ * @property-read VoiceService $voiceService
+ * @property-read AudioService $audioService
+ * @property-read PositionService $positionService
+ * @property-read UserManager $userManager
  */
 final class BVC extends PluginBase {
 	private static ?self $instance = null;
 
-	public ConfigManager $config;
-	public HttpClient $http;
-	public VoiceService $voiceService;
-	public AudioService $audioService;
-	public PositionService $positionService;
-	public UserManager $userManager;
+	private ConfigManager $config;
+	private HttpClient $http;
+	private VoiceService $voiceService;
+	private AudioService $audioService;
+	private PositionService $positionService;
+	private UserManager $userManager;
 
 	private ?BVCCommand $command = null;
 	private bool $httpStarted = false;
@@ -75,8 +82,55 @@ final class BVC extends PluginBase {
 		return self::$instance;
 	}
 
+	public function getConfigManager() : ConfigManager {
+		return $this->config;
+	}
+
+	public function getHttpClient() : HttpClient {
+		return $this->http;
+	}
+
+	public function getVoiceService() : VoiceService {
+		return $this->voiceService;
+	}
+
+	public function getAudioService() : AudioService {
+		return $this->audioService;
+	}
+
+	public function getPositionService() : PositionService {
+		return $this->positionService;
+	}
+
 	public function getUserManager() : UserManager {
 		return $this->userManager;
+	}
+
+	/**
+	 * @return mixed
+	 */
+	public function __get(string $name) {
+		return match ($name) {
+			'config' => $this->config,
+			'http' => $this->http,
+			'voiceService' => $this->voiceService,
+			'audioService' => $this->audioService,
+			'positionService' => $this->positionService,
+			'userManager' => $this->userManager,
+			default => throw new \Error("Undefined property: " . self::class . "::\${$name}"),
+		};
+	}
+
+	public function __isset(string $name) : bool {
+		return match ($name) {
+			'config' => isset($this->config),
+			'http' => isset($this->http),
+			'voiceService' => isset($this->voiceService),
+			'audioService' => isset($this->audioService),
+			'positionService' => isset($this->positionService),
+			'userManager' => isset($this->userManager),
+			default => false,
+		};
 	}
 
 	/**

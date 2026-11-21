@@ -64,9 +64,9 @@ final class BVCCommand extends BaseCommand {
 	}
 
 	protected function prepare() : void {
-		$perm = $this->plugin->config->getPermission('bvc', 'bvc.use');
+		$perm = $this->plugin->getConfigManager()->getPermission('bvc', 'bvc.use');
 		$this->setPermission($perm);
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 
 		$this->registerSubCommand(new HelpSubCommand($this->plugin));
 		$this->registerSubCommand(new MuteSubCommand($this->plugin));
@@ -93,7 +93,7 @@ final class BVCCommand extends BaseCommand {
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		// Default: show help if no subcommand matched
-		$sender->sendMessage($this->plugin->config->message('help_title'));
-		$sender->sendMessage($this->plugin->config->message('help_hint'));
+		$sender->sendMessage($this->plugin->getConfigManager()->message('help_title'));
+		$sender->sendMessage($this->plugin->getConfigManager()->message('help_hint'));
 	}
 }

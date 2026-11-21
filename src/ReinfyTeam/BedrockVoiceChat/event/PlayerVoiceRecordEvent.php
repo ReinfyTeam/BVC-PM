@@ -46,7 +46,8 @@ class PlayerVoiceRecordEvent extends BVCEvent implements Cancellable {
 		private Player $player,
 		private bool $recording,
 		private ?CommandSender $initiator = null
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

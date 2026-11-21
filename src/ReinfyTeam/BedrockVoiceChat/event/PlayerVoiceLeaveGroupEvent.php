@@ -44,7 +44,8 @@ class PlayerVoiceLeaveGroupEvent extends BVCEvent implements Cancellable {
 	public function __construct(
 		private Player $player,
 		private ?string $group = null
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

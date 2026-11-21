@@ -94,7 +94,7 @@ final class BVCListener implements Listener {
 		$player = $event->getPlayer();
 		$this->positionService->unmarkDead($player);
 		$this->positionService->sendDisconnectUpdate($player);
-		$this->plugin->voiceService->removePlayerState($player);
-		$this->plugin->userManager->removeUser($player);
+		$this->plugin->getVoiceService()->removePlayerState($player);
+		$this->plugin->getUserManager()->removeUser($player);
 	}
 }

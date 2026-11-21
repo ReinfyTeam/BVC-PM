@@ -48,7 +48,8 @@ class PlayerVoiceVolumeChangeEvent extends BVCEvent implements Cancellable {
 		private int $oldVolume,
 		private int $newVolume,
 		private ?CommandSender $initiator = null
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

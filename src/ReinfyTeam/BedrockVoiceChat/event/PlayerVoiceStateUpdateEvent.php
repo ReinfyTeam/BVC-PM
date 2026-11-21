@@ -42,7 +42,8 @@ class PlayerVoiceStateUpdateEvent extends BVCEvent {
 	public function __construct(
 		private Player $player,
 		private User $user
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

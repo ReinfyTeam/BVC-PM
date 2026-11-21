@@ -72,6 +72,6 @@ final class DiscForm extends CustomForm {
 			return;
 		}
 		$this->plugin->debug("[DiscForm] Player '{$player->getName()}' submitted audio ID: {$audioId}");
-		$this->plugin->audioService->giveBvcDisc($player, $audioId);
+		$this->plugin->getAudioService()->giveBvcDisc($player, $audioId);
 	}
 }

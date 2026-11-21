@@ -71,7 +71,7 @@ final class VolumeForm extends CustomForm {
 		}
 		$volume = (int) $volumeValue;
 		$this->plugin->debug("[VolumeForm] Player '{$player->getName()}' set volume to {$volume}");
-		$this->plugin->voiceService->setVolumeFor($player, $player, $volume);
+		$this->plugin->getVoiceService()->setVolumeFor($player, $player, $volume);
 		$player->sendMessage($this->config->message('volume_set', [
 			'level' => (string) $volume,
 			'target' => $player->getName(),

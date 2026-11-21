@@ -92,7 +92,7 @@ final class Util {
 		if ($sender->getServer()->isOp($sender->getName())) {
 			return true;
 		}
-		$adminPerm = $plugin->config->getPermission('bvc.admin', 'bvc.admin');
+		$adminPerm = $plugin->getConfigManager()->getPermission('bvc.admin', 'bvc.admin');
 		return $sender->hasPermission($adminPerm);
 	}
 

@@ -45,8 +45,8 @@ final class GroupsSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.group', 'bvc.group'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.group', 'bvc.group'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 	}
 
 	/**
@@ -54,9 +54,9 @@ final class GroupsSubCommand extends BaseSubCommand {
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
-		$this->plugin->voiceService->listGroups($sender);
+		$this->plugin->getVoiceService()->listGroups($sender);
 	}
 }

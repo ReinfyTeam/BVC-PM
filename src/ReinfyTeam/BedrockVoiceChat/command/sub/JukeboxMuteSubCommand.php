@@ -46,8 +46,8 @@ final class JukeboxMuteSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc', 'bvc.use'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc', 'bvc.use'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new OnOffArgument('state'));
 	}
 
@@ -57,9 +57,9 @@ final class JukeboxMuteSubCommand extends BaseSubCommand {
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$state = $args['state'] ?? null;
 		if (!is_bool($state)) {
-			$sender->sendMessage($this->plugin->config->message('jukebox_mute_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('jukebox_mute_usage'));
 			return;
 		}
-		$this->plugin->voiceService->toggleJukeboxMute($sender, $state);
+		$this->plugin->getVoiceService()->toggleJukeboxMute($sender, $state);
 	}
 }

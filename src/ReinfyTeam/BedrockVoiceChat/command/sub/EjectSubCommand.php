@@ -48,8 +48,8 @@ final class EjectSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.eject', 'bvc.eject'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.eject', 'bvc.eject'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new IntegerArgument('x'));
 		$this->registerArgument(1, new IntegerArgument('y'));
 		$this->registerArgument(2, new IntegerArgument('z'));
@@ -59,24 +59,24 @@ final class EjectSubCommand extends BaseSubCommand {
 	 * @param array<string, mixed> $args
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
-		if (!Util::isAdmin($sender, $this->plugin) && !$sender->hasPermission($this->plugin->config->getPermission('bvc.eject', 'bvc.eject'))) {
-			$sender->sendMessage($this->plugin->config->message('no_permission'));
+		if (!Util::isAdmin($sender, $this->plugin) && !$sender->hasPermission($this->plugin->getConfigManager()->getPermission('bvc.eject', 'bvc.eject'))) {
+			$sender->sendMessage($this->plugin->getConfigManager()->message('no_permission'));
 			return;
 		}
 		$x = $args['x'] ?? null;
 		$y = $args['y'] ?? null;
 		$z = $args['z'] ?? null;
 		if ($x === null || $y === null || $z === null || !is_int($x) || !is_int($y) || !is_int($z)) {
-			$sender->sendMessage($this->plugin->config->message('eject_usage'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('eject_usage'));
 			return;
 		}
 		$world = $sender instanceof Player ? $sender->getWorld() : $this->plugin->getServer()->getWorldManager()->getDefaultWorld();
 		if ($world === null) {
-			$sender->sendMessage($this->plugin->config->message('world_not_found'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('world_not_found'));
 			return;
 		}
-		$this->plugin->audioService->forceEjectAt($world, (int) $x, (int) $y, (int) $z);
-		$sender->sendMessage($this->plugin->config->message('eject_done', [
+		$this->plugin->getAudioService()->forceEjectAt($world, (int) $x, (int) $y, (int) $z);
+		$sender->sendMessage($this->plugin->getConfigManager()->message('eject_done', [
 			'location' => $x . ', ' . $y . ', ' . $z
 		]));
 	}

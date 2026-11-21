@@ -76,7 +76,7 @@ final class MainForm extends SimpleForm {
 		if ($data === null) {
 			return; // Closed
 		}
-		$voiceService = $this->plugin->voiceService;
+		$voiceService = $this->plugin->getVoiceService();
 		if (!is_int($data)) {
 			if (is_string($data) || is_float($data)) {
 				$data = intval($data);

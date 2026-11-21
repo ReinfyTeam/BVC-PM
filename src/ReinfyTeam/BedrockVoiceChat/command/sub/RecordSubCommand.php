@@ -52,8 +52,8 @@ final class RecordSubCommand extends BaseSubCommand {
 	}
 
 	protected function prepare() : void {
-		$this->setPermission($this->plugin->config->getPermission('bvc.record', 'bvc.record'));
-		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
+		$this->setPermission($this->plugin->getConfigManager()->getPermission('bvc.record', 'bvc.record'));
+		$this->setPermissionMessage($this->plugin->getConfigManager()->message('no_permission'));
 		$this->registerArgument(0, new OnOffArgument('state'));
 		$this->registerArgument(1, new TargetPlayerArgument(true, 'player'));
 	}
@@ -64,7 +64,7 @@ final class RecordSubCommand extends BaseSubCommand {
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$state = $args['state'] ?? null;
 		if (!is_bool($state)) {
-			$sender->sendMessage($this->plugin->config->message('boolean_usage', ['sub' => 'record']));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('boolean_usage', ['sub' => 'record']));
 			return;
 		}
 
@@ -75,23 +75,23 @@ final class RecordSubCommand extends BaseSubCommand {
 		if ($targetName !== '') {
 			if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 				if (!Util::isAdmin($sender, $this->plugin)) {
-					$sender->sendMessage($this->plugin->config->message('only_self_allowed'));
+					$sender->sendMessage($this->plugin->getConfigManager()->message('only_self_allowed'));
 					return;
 				}
 			}
 			$target = Util::getOnlinePlayer($targetName);
 			if ($target === null) {
-				$sender->sendMessage($this->plugin->config->message('player_not_found', ['name' => $targetName]));
+				$sender->sendMessage($this->plugin->getConfigManager()->message('player_not_found', ['name' => $targetName]));
 				return;
 			}
-			$this->plugin->voiceService->toggleRecordingFor($sender, $target, $state);
+			$this->plugin->getVoiceService()->toggleRecordingFor($sender, $target, $state);
 			return;
 		}
 
 		if (!$sender instanceof Player) {
-			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
+			$sender->sendMessage($this->plugin->getConfigManager()->message('player_must_be_ingame'));
 			return;
 		}
-		$this->plugin->voiceService->toggleRecording($sender, $state);
+		$this->plugin->getVoiceService()->toggleRecording($sender, $state);
 	}
 }

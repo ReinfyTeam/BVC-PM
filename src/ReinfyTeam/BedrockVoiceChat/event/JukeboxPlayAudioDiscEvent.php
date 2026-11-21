@@ -48,7 +48,8 @@ class JukeboxPlayAudioDiscEvent extends BVCEvent implements Cancellable {
 		private Jukebox $jukebox,
 		private string $audioId,
 		private Position $position
-	) {}
+	) {
+	}
 
 	public function getPlayer() : Player {
 		return $this->player;

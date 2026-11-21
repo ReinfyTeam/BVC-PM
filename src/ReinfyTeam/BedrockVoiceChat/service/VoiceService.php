@@ -220,7 +220,7 @@ final class VoiceService {
 
 		$state = $this->getPlayerState($player);
 		$state->setMuted($value);
-		$this->plugin->userManager->getOrCreateUser($player)->setMuted($value);
+		$this->plugin->getUserManager()->getOrCreateUser($player)->setMuted($value);
 		$this->sendControl($player, ['SetMuted' => $value], 'mute_toggled', ['state' => $value ? 'enabled' : 'disabled']);
 	}
 
@@ -234,7 +234,7 @@ final class VoiceService {
 
 		$state = $this->getPlayerState($target);
 		$state->setMuted($value);
-		$this->plugin->userManager->getOrCreateUser($target)->setMuted($value);
+		$this->plugin->getUserManager()->getOrCreateUser($target)->setMuted($value);
 		if ($sender instanceof Player && $sender->getUniqueId()->equals($target->getUniqueId())) {
 			$this->sendControl($target, ['SetMuted' => $value], 'mute_toggled', ['state' => $value ? 'enabled' : 'disabled']);
 		} else {
@@ -256,7 +256,7 @@ final class VoiceService {
 
 		$state = $this->getPlayerState($player);
 		$state->setDeafened($value);
-		$this->plugin->userManager->getOrCreateUser($player)->setDeafened($value);
+		$this->plugin->getUserManager()->getOrCreateUser($player)->setDeafened($value);
 		$this->sendControl($player, ['SetDeafened' => $value], 'deafen_toggled', ['state' => $value ? 'enabled' : 'disabled']);
 	}
 
@@ -270,7 +270,7 @@ final class VoiceService {
 
 		$state = $this->getPlayerState($target);
 		$state->setDeafened($value);
-		$this->plugin->userManager->getOrCreateUser($target)->setDeafened($value);
+		$this->plugin->getUserManager()->getOrCreateUser($target)->setDeafened($value);
 		if ($sender instanceof Player && $sender->getUniqueId()->equals($target->getUniqueId())) {
 			$this->sendControl($target, ['SetDeafened' => $value], 'deafen_toggled', ['state' => $value ? 'enabled' : 'disabled']);
 		} else {
@@ -292,7 +292,7 @@ final class VoiceService {
 
 		$state = $this->getPlayerState($player);
 		$state->setRecording($value);
-		$this->plugin->userManager->getOrCreateUser($player)->setRecording($value);
+		$this->plugin->getUserManager()->getOrCreateUser($player)->setRecording($value);
 		$this->sendControl($player, ['SetRecording' => $value], 'record_toggled', ['state' => $value ? 'enabled' : 'disabled']);
 	}
 
@@ -306,7 +306,7 @@ final class VoiceService {
 
 		$state = $this->getPlayerState($target);
 		$state->setRecording($value);
-		$this->plugin->userManager->getOrCreateUser($target)->setRecording($value);
+		$this->plugin->getUserManager()->getOrCreateUser($target)->setRecording($value);
 		if ($sender instanceof Player && $sender->getUniqueId()->equals($target->getUniqueId())) {
 			$this->sendControl($target, ['SetRecording' => $value], 'record_toggled', ['state' => $value ? 'enabled' : 'disabled']);
 		} else {
@@ -325,7 +325,7 @@ final class VoiceService {
 			return;
 		}
 		$level = max(0, min(150, $level));
-		$oldVolume = (int) round($this->plugin->userManager->getOrCreateUser($player)->getVolume() * 100);
+		$oldVolume = (int) round($this->plugin->getUserManager()->getOrCreateUser($player)->getVolume() * 100);
 		$event = new PlayerVoiceVolumeChangeEvent($player, $target, $oldVolume, $level, $player);
 		$event->call();
 		if ($event->isCancelled()) {
@@ -339,7 +339,7 @@ final class VoiceService {
 
 	public function setVolumeFor(CommandSender $sender, Player $target, int $level) : void {
 		$level = max(0, min(150, $level));
-		$oldVolume = (int) round($this->plugin->userManager->getOrCreateUser($target)->getVolume() * 100);
+		$oldVolume = (int) round($this->plugin->getUserManager()->getOrCreateUser($target)->getVolume() * 100);
 		$event = new PlayerVoiceVolumeChangeEvent($target, $target, $oldVolume, $level, $sender);
 		$event->call();
 		if ($event->isCancelled()) {
@@ -434,7 +434,7 @@ final class VoiceService {
 	}
 
 	public function leaveGroup(Player $player) : void {
-		$group = $this->plugin->userManager->getUser($player)?->getGroup();
+		$group = $this->plugin->getUserManager()->getUser($player)?->getGroup();
 		$event = new PlayerVoiceLeaveGroupEvent($player, $group);
 		$event->call();
 		if ($event->isCancelled()) {
@@ -503,7 +503,7 @@ final class VoiceService {
 				}
 
 				// Sync with UserManager
-				$user = $this->plugin->userManager->getOrCreateUser($targetPlayerName);
+				$user = $this->plugin->getUserManager()->getOrCreateUser($targetPlayerName);
 				$user->setMuted((bool) ($state['muted'] ?? false));
 				$user->setDeafened((bool) ($state['deafened'] ?? false));
 				$user->setRecording((bool) ($state['recording'] ?? false));
