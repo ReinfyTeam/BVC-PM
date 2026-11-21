@@ -33,6 +33,8 @@ namespace ReinfyTeam\BedrockVoiceChat\thread;
 
 use pmmp\thread\ThreadSafeArray;
 use pocketmine\thread\Thread;
+use Throwable;
+use function count;
 use function curl_close;
 use function curl_error;
 use function curl_exec;
@@ -45,7 +47,6 @@ use function is_string;
 use function max;
 use function min;
 use function strtoupper;
-use function usleep;
 
 /**
  * Dedicated background worker thread for all BVC HTTP requests.
@@ -66,28 +67,46 @@ final class HttpWorkerThread extends Thread {
 
 	public function onRun() : void {
 		while ($this->running) {
-			$data = $this->toThread->shift();
+			$data = $this->toThread->synchronized(function() : mixed {
+				while ($this->running && count($this->toThread) === 0) {
+					$this->toThread->wait(50000); // 50ms wait with timeout
+				}
+				return $this->toThread->shift();
+			});
+
 			if ($data !== null) {
-				if (!is_array($data)) {
+				if (!($data instanceof ThreadSafeArray) && !is_array($data)) {
 					continue;
 				}
-				$result = $this->executeRequest($data);
-				$this->fromThread[] = $result;
+				try {
+					$result = $this->executeRequest($data);
+				} catch (Throwable $e) {
+					$seqVal = $data['seq'] ?? 0;
+					$result = ThreadSafeArray::fromArray([
+						'seq' => is_int($seqVal) ? $seqVal : 0,
+						'httpCode' => 0,
+						'body' => '',
+						'error' => 'Worker thread exception: ' . $e->getMessage(),
+					]);
+				}
+				$this->fromThread->synchronized(function() use ($result) : void {
+					$this->fromThread[] = $result;
+				});
 			}
-			// Prevent 100% CPU usage in an idle loop
-			usleep(50000); // 50ms
 		}
 	}
 
 	public function stop() : void {
 		$this->running = false;
+		$this->toThread->synchronized(function() : void {
+			$this->toThread->notify();
+		});
 	}
 
 	/**
-	 * @param array<mixed, mixed> $data
-	 * @return array<string, mixed>
+	 * @param ThreadSafeArray|array<mixed, mixed> $data
 	 */
-	private function executeRequest(array $data) : array {
+	private function executeRequest(ThreadSafeArray|array $data) : ThreadSafeArray {
 		$seqValue = $data['seq'] ?? 0;
 		$seq = is_int($seqValue) ? $seqValue : 0;
 		$methodValue = $data['method'] ?? null;
@@ -95,7 +114,6 @@ final class HttpWorkerThread extends Thread {
 		$urlValue = $data['url'] ?? null;
 		$url = is_string($urlValue) ? $urlValue : '';
 		$headersValue = $data['headers'] ?? null;
-		$headers = is_array($headersValue) ? $headersValue : [];
 		$body = $data['body'] ?? null;
 		if ($body !== null && !is_string($body)) {
 			$body = '';
@@ -103,16 +121,27 @@ final class HttpWorkerThread extends Thread {
 		$timeoutValue = $data['timeout'] ?? 5;
 		$timeout = is_int($timeoutValue) ? $timeoutValue : 5;
 
+		$headers = [];
+		if ($headersValue instanceof ThreadSafeArray || is_array($headersValue)) {
+			foreach ($headersValue as $name => $value) {
+				if (is_string($name) && is_string($value) && $name !== '' && $value !== '') {
+					$headers[$name] = $value;
+				}
+			}
+		}
+
 		$ch = curl_init($url);
 		if ($ch === false) {
-			return ['seq' => $seq, 'httpCode' => 0, 'body' => '', 'error' => 'curl_init() failed'];
+			return ThreadSafeArray::fromArray([
+				'seq' => $seq,
+				'httpCode' => 0,
+				'body' => '',
+				'error' => 'curl_init() failed',
+			]);
 		}
 
 		$headerLines = [];
 		foreach ($headers as $name => $value) {
-			if (!is_string($name) || !is_string($value) || $name === '' || $value === '') {
-				continue;
-			}
 			$headerLines[] = $name . ': ' . $value;
 		}
 
@@ -142,11 +171,11 @@ final class HttpWorkerThread extends Thread {
 		$httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 		curl_close($ch);
 
-		return [
+		return ThreadSafeArray::fromArray([
 			'seq' => $seq,
 			'httpCode' => $httpCode,
 			'body' => is_string($result) ? $result : '',
 			'error' => $error,
-		];
+		]);
 	}
 }

@@ -88,9 +88,10 @@ final class HttpClient {
 		}
 		if ($this->worker !== null) {
 			$this->worker->stop();
-			$this->worker->join();
+			$this->worker->quit();
 			$this->worker = null;
 		}
+		self::$pendingCallbacks = [];
 	}
 
 	/**
@@ -103,23 +104,30 @@ final class HttpClient {
 
 		$this->plugin->debug("[HttpClient] Dispatched request #{$seq}: {$method} {$url} (timeout: {$timeout}s)");
 
-		$this->toThread[] = [
+		$request = ThreadSafeArray::fromArray([
 			'seq' => $seq,
 			'method' => $method,
 			'url' => $url,
-			'headers' => $headers,
+			'headers' => ThreadSafeArray::fromArray($headers),
 			'body' => $body,
 			'timeout' => $timeout,
-		];
+		]);
+
+		$this->toThread->synchronized(function() use ($request) : void {
+			$this->toThread[] = $request;
+			$this->toThread->notify();
+		});
 	}
 
 	private function pollResults() : void {
 		while (true) {
-			$result = $this->fromThread->shift();
+			$result = $this->fromThread->synchronized(function() : mixed {
+				return $this->fromThread->shift();
+			});
 			if ($result === null) {
 				break;
 			}
-			if (!is_array($result)) {
+			if (!($result instanceof ThreadSafeArray) && !is_array($result)) {
 				continue;
 			}
 			$seqValue = $result['seq'] ?? 0;
