@@ -59,7 +59,14 @@ final class VolumeForm extends CustomForm {
 		if ($data === null) {
 			return;
 		}
-		$volume = (int) ($data['volume'] ?? 100);
+		if (!is_array($data)) {
+			return;
+		}
+		$volumeValue = $data['volume'] ?? 100;
+		if (!is_int($volumeValue) && !is_float($volumeValue)) {
+			$volumeValue = 100;
+		}
+		$volume = (int) $volumeValue;
 		$this->plugin->debug("[VolumeForm] Player '{$player->getName()}' set volume to {$volume}");
 		$this->plugin->voiceService->setVolumeFor($player, $player, $volume);
 		$player->sendMessage($this->config->message('volume_set', [

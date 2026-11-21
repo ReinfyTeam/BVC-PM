@@ -90,8 +90,27 @@ final class ConfigManager {
 		// 2. Load and version-check messages.yml
 		$this->loadAndMigrateMessages();
 
-		$this->permissions = (array) $this->config->get("permissions", []);
-		$this->performance = (array) $this->config->get("performance", []);
+		$rawPermissions = $this->config->get("permissions", []);
+		if (!is_array($rawPermissions)) {
+			$rawPermissions = [];
+		}
+		$this->permissions = [];
+		foreach ($rawPermissions as $internal => $permissionName) {
+			if (is_string($internal) && is_string($permissionName)) {
+				$this->permissions[$internal] = $permissionName;
+			}
+		}
+
+		$rawPerformance = $this->config->get("performance", []);
+		if (!is_array($rawPerformance)) {
+			$rawPerformance = [];
+		}
+		$this->performance = [];
+		foreach ($rawPerformance as $key => $value) {
+			if (is_string($key)) {
+				$this->performance[$key] = $value;
+			}
+		}
 
 		$this->plugin->debug("[ConfigManager] Configurations loaded. Permissions: " . count($this->permissions));
 	}
@@ -106,7 +125,8 @@ final class ConfigManager {
 		}
 
 		$this->config = new Config($configFile, Config::YAML, []);
-		$fileVersion = (int) $this->config->get("version", 0);
+		$fileVersionValue = $this->config->get("version", 0);
+		$fileVersion = is_int($fileVersionValue) ? $fileVersionValue : 0;
 
 		if ($fileVersion < self::CURRENT_CONFIG_VERSION) {
 			$this->plugin->getLogger()->info("Migrating config.yml from version {$fileVersion} to " . self::CURRENT_CONFIG_VERSION . "...");
@@ -123,6 +143,7 @@ final class ConfigManager {
 					$currentData = $this->config->getAll();
 					$merged = array_replace_recursive($defaultData, $currentData);
 					$merged["version"] = self::CURRENT_CONFIG_VERSION;
+					/** @var array<string, mixed> $merged */
 					$this->config->setAll($merged);
 					$this->config->save();
 					$this->plugin->getLogger()->info("config.yml successfully migrated to version " . self::CURRENT_CONFIG_VERSION . ".");
@@ -134,7 +155,10 @@ final class ConfigManager {
 	}
 
 	private function loadAndMigrateMessages() : void {
-		$this->messagesFile = (string) $this->config->get("messages_file", "messages.yml");
+		$this->messagesFile = $this->config->get("messages_file", "messages.yml");
+		if (!is_string($this->messagesFile)) {
+			$this->messagesFile = "messages.yml";
+		}
 		$messagesPath = $this->plugin->getDataFolder() . $this->messagesFile;
 
 		if (!file_exists($messagesPath)) {
@@ -148,7 +172,8 @@ final class ConfigManager {
 		}
 
 		$this->messages = new Config($messagesPath, Config::YAML, []);
-		$fileVersion = (int) $this->messages->get("version", 0);
+		$fileVersionValue = $this->messages->get("version", 0);
+		$fileVersion = is_int($fileVersionValue) ? $fileVersionValue : 0;
 
 		if ($fileVersion < self::CURRENT_MESSAGES_VERSION) {
 			$this->plugin->getLogger()->info("Migrating {$this->messagesFile} from version {$fileVersion} to " . self::CURRENT_MESSAGES_VERSION . "...");
@@ -165,6 +190,7 @@ final class ConfigManager {
 					$currentData = $this->messages->getAll();
 					$merged = array_replace_recursive($defaultData, $currentData);
 					$merged["version"] = self::CURRENT_MESSAGES_VERSION;
+					/** @var array<string, mixed> $merged */
 					$this->messages->setAll($merged);
 					$this->messages->save();
 					$this->plugin->getLogger()->info("{$this->messagesFile} successfully migrated to version " . self::CURRENT_MESSAGES_VERSION . ".");
@@ -263,10 +289,12 @@ final class ConfigManager {
 		if ($msg === null) {
 			$this->plugin->debug("[ConfigManager] Missing message key '{$key}', using key as fallback.");
 			$msg = $key;
+		} elseif (!is_string($msg)) {
+			$msg = $key;
 		}
 		foreach ($placeholders as $find => $replace) {
-			$msg = str_replace("{" . $find . "}", (string) $replace, (string) $msg);
+			$msg = str_replace("{" . $find . "}", $replace, $msg);
 		}
-		return (string) $msg;
+		return $msg;
 	}
 }

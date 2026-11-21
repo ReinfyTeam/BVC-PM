@@ -115,7 +115,11 @@ final class BVC extends PluginBase {
 		$this->positionService->loadConfig();
 
 		// World UUID: generate if missing, persist to config
-		$worldUuid = trim((string) $this->config->get('world_uuid', ''));
+		$worldUuid = $this->config->get('world_uuid', '');
+		if (!is_string($worldUuid)) {
+			$worldUuid = '';
+		}
+		$worldUuid = trim($worldUuid);
 		if ($worldUuid === '') {
 			$worldUuid = Util::generateUuid();
 			$this->config->set('world_uuid', $worldUuid);
@@ -129,7 +133,11 @@ final class BVC extends PluginBase {
 		$this->command = new BVCCommand($this);
 		$this->getServer()->getCommandMap()->register('bvc', $this->command);
 
-		$pollInterval = max(1, (int) $this->config->get('poll_interval_ticks', 5));
+		$pollIntervalValue = $this->config->getPerformance('poll_interval_ticks', 5);
+		if (!is_int($pollIntervalValue)) {
+			$pollIntervalValue = 5;
+		}
+		$pollInterval = max(1, $pollIntervalValue);
 		$this->debug("Scheduling position polling every {$pollInterval} ticks...");
 		// Schedule position polling (asynchronous, batched)
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() : void {
@@ -159,7 +167,7 @@ final class BVC extends PluginBase {
 
 		$this->debug("Stopping HTTP worker thread...");
 		// Stop the dedicated HTTP worker thread cleanly
-		if ($this->httpStarted && $this->http !== null) {
+		if ($this->httpStarted) {
 			$this->http->stop();
 		}
 
@@ -169,14 +177,22 @@ final class BVC extends PluginBase {
 	}
 
 	public function baseUrl() : string {
-		return rtrim((string) $this->config->get('server_url', ''), '/');
+		$url = $this->config->get('server_url', '');
+		if (!is_string($url)) {
+			$url = '';
+		}
+		return rtrim($url, '/');
 	}
 
 	/**
 	 * @return array<string, string>
 	 */
 	public function headers(bool $json = false) : array {
-		$headers = ['Authorization' => 'Bearer ' . trim((string) $this->config->get('access_token', '')), 'Accept' => 'application/json'];
+		$token = $this->config->get('access_token', '');
+		if (!is_string($token)) {
+			$token = '';
+		}
+		$headers = ['Authorization' => 'Bearer ' . trim($token), 'Accept' => 'application/json'];
 		if ($json) {
 			$headers['Content-Type'] = 'application/json';
 		}
@@ -184,7 +200,11 @@ final class BVC extends PluginBase {
 	}
 
 	public function httpTimeout() : int {
-		return max(1, (int) $this->config->get('http_timeout_seconds', 8));
+		$timeout = $this->config->get('http_timeout_seconds', 8);
+		if (!is_int($timeout)) {
+			$timeout = 8;
+		}
+		return max(1, $timeout);
 	}
 
 	public function isConfigured() : bool {

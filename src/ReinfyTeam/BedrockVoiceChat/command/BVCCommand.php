@@ -88,6 +88,9 @@ final class BVCCommand extends BaseCommand {
 		$this->registerSubCommand(new UISubCommand($this->plugin));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		// Default: show help if no subcommand matched
 		$sender->sendMessage($this->plugin->config->message('help_title'));

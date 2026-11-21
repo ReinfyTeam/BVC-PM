@@ -55,10 +55,10 @@ final class PositionService {
 	private ConfigManager $config;
 	private HttpClient $http;
 
-	private int $pollInterval = 5;
 	private int $minimumPlayers = 1;
 	private int $batchSize = 50;
 	private bool $enablePolling = true;
+	/** @var array<string, string> */
 	private array $dimensionMap = [];
 	private string $worldUuid = '';
 
@@ -76,12 +76,26 @@ final class PositionService {
 	}
 
 	public function loadConfig() : void {
-		$this->pollInterval = max(1, (int) $this->config->get('poll_interval_ticks', 5));
-		$this->minimumPlayers = max(1, (int) $this->config->get('minimum_players', 1));
+		$minimumPlayersValue = $this->config->get('minimum_players', 1);
+		$this->minimumPlayers = max(1, is_int($minimumPlayersValue) ? $minimumPlayersValue : 1);
+		$batchSizeValue = $this->config->getPerformance('position_batch_size', 50);
+		$this->batchSize = max(1, is_int($batchSizeValue) ? $batchSizeValue : 50);
 		$this->batchSize = max(1, (int) $this->config->getPerformance('position_batch_size', 50));
 		$this->enablePolling = (bool) $this->config->getPerformance('enable_position_polling', true);
-		$this->dimensionMap = (array) $this->config->get('dimension_map', []);
-		$this->worldUuid = trim((string) $this->config->get('world_uuid', ''));
+		$rawDimensionMap = $this->config->get('dimension_map', []);
+		$this->dimensionMap = [];
+		if (is_array($rawDimensionMap)) {
+			foreach ($rawDimensionMap as $folder => $dimension) {
+				if (is_string($folder) && is_string($dimension)) {
+					$this->dimensionMap[$folder] = $dimension;
+				}
+			}
+		}
+		$worldUuidValue = $this->config->get('world_uuid', '');
+		if (!is_string($worldUuidValue)) {
+			$worldUuidValue = '';
+		}
+		$this->worldUuid = trim($worldUuidValue);
 	}
 
 	public function setWorldUuid(string $uuid) : void {
@@ -121,11 +135,26 @@ final class PositionService {
 			'spectator' => true,
 			'world_uuid' => $this->worldUuid
 		];
-		$baseUrl = rtrim((string) $this->config->get('server_url', ''), '/');
-		$headers = ['Authorization' => 'Bearer ' . trim((string) $this->config->get('access_token', '')), 'Accept' => 'application/json', 'Content-Type' => 'application/json'];
-		$timeout = max(1, (int) $this->config->get('http_timeout_seconds', 8));
-		$this->http->request('POST', $baseUrl . '/api/position', $headers,
-			json_encode(['game' => 'minecraft', 'players' => [$row]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+		$baseUrlValue = $this->config->get('server_url', '');
+		if (!is_string($baseUrlValue)) {
+			$baseUrlValue = '';
+		}
+		$baseUrl = rtrim($baseUrlValue, '/');
+		$tokenValue = $this->config->get('access_token', '');
+		if (!is_string($tokenValue)) {
+			$tokenValue = '';
+		}
+		$headers = ['Authorization' => 'Bearer ' . trim($tokenValue), 'Accept' => 'application/json', 'Content-Type' => 'application/json'];
+		$timeoutValue = $this->config->get('http_timeout_seconds', 8);
+		if (!is_int($timeoutValue)) {
+			$timeoutValue = 8;
+		}
+		$timeout = max(1, $timeoutValue);
+		$body = json_encode(['game' => 'minecraft', 'players' => [$row]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+		if (!is_string($body)) {
+			return;
+		}
+		$this->http->request('POST', $baseUrl . '/api/position', $headers, $body,
 			static function(int $status, string $body, string $error) : void {
 				// Fire-and-forget disconnect update
 			}, $timeout);
@@ -170,22 +199,42 @@ final class PositionService {
 		}
 
 		// Send in batches
-		$batches = array_chunk($allRows, $this->batchSize);
+		$batchSize = max(1, $this->batchSize);
+		$batches = array_chunk($allRows, $batchSize);
 		foreach ($batches as $batch) {
 			$this->sendPositionBatch($batch);
 		}
 	}
 
+	/**
+	 * @param array<string, mixed> $rows
+	 */
 	private function sendPositionBatch(array $rows) : void {
-		$baseUrl = rtrim((string) $this->config->get('server_url', ''), '/');
-		$headers = ['Authorization' => 'Bearer ' . trim((string) $this->config->get('access_token', '')), 'Accept' => 'application/json', 'Content-Type' => 'application/json'];
-		$timeout = max(1, (int) $this->config->get('http_timeout_seconds', 8));
+		$baseUrlValue = $this->config->get('server_url', '');
+		if (!is_string($baseUrlValue)) {
+			$baseUrlValue = '';
+		}
+		$baseUrl = rtrim($baseUrlValue, '/');
+		$tokenValue = $this->config->get('access_token', '');
+		if (!is_string($tokenValue)) {
+			$tokenValue = '';
+		}
+		$headers = ['Authorization' => 'Bearer ' . trim($tokenValue), 'Accept' => 'application/json', 'Content-Type' => 'application/json'];
+		$timeoutValue = $this->config->get('http_timeout_seconds', 8);
+		if (!is_int($timeoutValue)) {
+			$timeoutValue = 8;
+		}
+		$timeout = max(1, $timeoutValue);
 
 		$this->positionRequestPending = true;
 		$this->plugin->debug("[PositionService] Sending position batch of " . count($rows) . " player(s)");
-		$this->http->request('POST', $baseUrl . '/api/position', $headers,
-			json_encode(['game' => 'minecraft', 'players' => $rows], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-			function(int $status, string $body, string $error) use ($rows) : void {
+		$body = json_encode(['game' => 'minecraft', 'players' => $rows], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+		if (!is_string($body)) {
+			$this->positionRequestPending = false;
+			return;
+		}
+		$this->http->request('POST', $baseUrl . '/api/position', $headers, $body,
+			function(int $status, string $body, string $error) : void {
 				$this->positionRequestPending = false;
 				$this->plugin->debug("[PositionService] Position batch returned: HTTP {$status}");
 				if ($status >= 200 && $status < 300) {

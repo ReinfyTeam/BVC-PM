@@ -70,22 +70,40 @@ final class VoiceService {
 	}
 
 	public function isConfigured() : bool {
-		$baseUrl = (string) $this->config->get('server_url', '');
-		$token = (string) $this->config->get('access_token', '');
+		$baseUrl = $this->config->get('server_url', '');
+		if (!is_string($baseUrl)) {
+			$baseUrl = '';
+		}
+		$token = $this->config->get('access_token', '');
+		if (!is_string($token)) {
+			$token = '';
+		}
 		return $baseUrl !== '' && filter_var($baseUrl, FILTER_VALIDATE_URL) !== false
 			&& $token !== '' && $token !== 'CHANGE_ME';
 	}
 
 	public function baseUrl() : string {
-		return rtrim((string) $this->config->get('server_url', ''), '/');
+		$url = $this->config->get('server_url', '');
+		if (!is_string($url)) {
+			$url = '';
+		}
+		return rtrim($url, '/');
 	}
 
 	public function token() : string {
-		return trim((string) $this->config->get('access_token', ''));
+		$token = $this->config->get('access_token', '');
+		if (!is_string($token)) {
+			$token = '';
+		}
+		return trim($token);
 	}
 
 	public function httpTimeout() : int {
-		return max(1, (int) $this->config->get('http_timeout_seconds', 8));
+		$timeout = $this->config->get('http_timeout_seconds', 8);
+		if (!is_int($timeout)) {
+			$timeout = 8;
+		}
+		return max(1, $timeout);
 	}
 
 	/**
@@ -119,7 +137,12 @@ final class VoiceService {
 		return true;
 	}
 
-	/** Send a control action to the BVC backend for a specific target player, reporting results to $sender. */
+	/**
+	 * Send a control action to the BVC backend for a specific target player, reporting results to $sender.
+	 *
+	 * @param array<string, mixed>|string $action
+	 * @param array<string, string> $placeholders
+	 */
 	public function sendControlFor(
 		CommandSender $sender,
 		string $targetPlayerName,
@@ -167,7 +190,12 @@ final class VoiceService {
 			}, $this->httpTimeout());
 	}
 
-	/** Send a control action to the BVC backend for a player's own voice session. */
+	/**
+	 * Send a control action to the BVC backend for a player's own voice session.
+	 *
+	 * @param array<string, mixed>|string $action
+	 * @param array<string, string> $placeholders
+	 */
 	public function sendControl(Player $player, array|string $action, string $successMessageKey, array $placeholders = []) : void {
 		$this->sendControlFor($player, $player->getName(), $action, $successMessageKey, $placeholders);
 	}
@@ -336,10 +364,15 @@ final class VoiceService {
 				$player->sendMessage($this->config->message('groups_title'));
 				foreach ($rows as $row) {
 					if (is_array($row) && isset($row['id'], $row['name'])) {
+						$idValue = $row['id'];
+						$nameValue = $row['name'];
+						if (!is_string($idValue) || !is_string($nameValue)) {
+							continue;
+						}
 						$protected = ($row['protected'] ?? false) === true ? ' §c[Invite required]' : '';
 						$player->sendMessage($this->config->message('group_line', [
-							'name' => (string) $row['name'],
-							'id' => (string) $row['id'],
+							'name' => $nameValue,
+							'id' => $idValue,
 							'protected' => $protected,
 						]));
 					}

@@ -51,6 +51,9 @@ final class JukeboxVolumeSubCommand extends BaseSubCommand {
 		$this->registerArgument(0, new IntegerArgument('level'));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$level = $args['level'] ?? null;
 		if ($level === null || !is_numeric($level)) {

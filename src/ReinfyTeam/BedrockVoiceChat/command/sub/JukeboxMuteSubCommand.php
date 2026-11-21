@@ -51,9 +51,15 @@ final class JukeboxMuteSubCommand extends BaseSubCommand {
 		$this->registerArgument(0, new RawStringArgument('state'));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$state = $args['state'] ?? null;
-		$parsed = Util::parseBoolean($state !== null ? (string) $state : null);
+		if ($state !== null && !is_string($state)) {
+			$state = strval($state);
+		}
+		$parsed = Util::parseBoolean($state !== null ? $state : null);
 		if ($parsed === null) {
 			$sender->sendMessage($this->plugin->config->message('jukebox_mute_usage'));
 			return;

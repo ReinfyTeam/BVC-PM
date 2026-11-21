@@ -25,5 +25,9 @@
         "sof3/pharynx": "^0.3.0",
         "phpstan/phpstan": "^2.1",
         "friendsofphp/php-cs-fixer": "^3.58"
-    }
+    },
+	"require": {
+		"paroxity/commando": "dev-master",
+		"muqsit/simple-packet-handler": "0.1.6"
+	}
 }

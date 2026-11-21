@@ -52,12 +52,18 @@ final class GroupJoinSubCommand extends BaseSubCommand {
 		$this->registerArgument(0, new RawStringArgument('code'));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		if (!$sender instanceof Player) {
 			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
 			return;
 		}
 		$code = $args['code'] ?? null;
+		if ($code !== null && !is_string($code)) {
+			$code = strval($code);
+		}
 		if ($code === null || trim((string) $code) === '') {
 			$sender->sendMessage($this->plugin->config->message('group_join_usage'));
 			return;

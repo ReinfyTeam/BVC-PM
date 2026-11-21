@@ -31,8 +31,8 @@ declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\thread;
 
+use pmmp\thread\ThreadSafeArray;
 use pocketmine\thread\Thread;
-use pocketmine\thread\ThreadSafeArray;
 use ReinfyTeam\BedrockVoiceChat\http\HttpClient;
 use function curl_close;
 use function curl_error;
@@ -41,6 +41,8 @@ use function curl_getinfo;
 use function curl_init;
 use function curl_setopt;
 use function curl_setopt_array;
+use function is_array;
+use function is_int;
 use function is_string;
 use function max;
 use function min;
@@ -54,8 +56,6 @@ use function usleep;
  * network latency never blocks the game loop. Requests are submitted via
  * $toThread and results are returned via $fromThread. The main thread polls
  * $fromThread on a repeating task.
- *
- * @phpstan-import-type Request from HttpClient
  */
 final class HttpWorkerThread extends Thread {
 	/** @var array<string, mixed> */
@@ -72,6 +72,9 @@ final class HttpWorkerThread extends Thread {
 		while ($this->running) {
 			$data = $this->toThread->shift();
 			if ($data !== null) {
+				if (!is_array($data)) {
+					continue;
+				}
 				$result = $this->executeRequest($data);
 				$this->fromThread[] = $result;
 			}
@@ -84,14 +87,22 @@ final class HttpWorkerThread extends Thread {
 		$this->running = false;
 	}
 
-	/** @param array<string, mixed> $data @return array<string, mixed> */
+	/**
+	 * @param array<string, mixed> $data
+	 * @return array<string, mixed>
+	 */
 	private function executeRequest(array $data) : array {
-		$seq = $data['seq'] ?? 0;
-		$method = $data['method'] ?? 'GET';
-		$url = $data['url'] ?? '';
-		$headers = $data['headers'] ?? [];
+		$seqValue = $data['seq'] ?? 0;
+		$seq = is_int($seqValue) ? $seqValue : 0;
+		$method = is_string($data['method'] ?? null) ? $data['method'] : 'GET';
+		$url = is_string($data['url'] ?? null) ? $data['url'] : '';
+		$headers = is_array($data['headers'] ?? null) ? $data['headers'] : [];
 		$body = $data['body'] ?? null;
-		$timeout = $data['timeout'] ?? 5;
+		if ($body !== null && !is_string($body)) {
+			$body = strval($body);
+		}
+		$timeoutValue = $data['timeout'] ?? 5;
+		$timeout = is_int($timeoutValue) ? $timeoutValue : 5;
 
 		$ch = curl_init($url);
 		if ($ch === false) {

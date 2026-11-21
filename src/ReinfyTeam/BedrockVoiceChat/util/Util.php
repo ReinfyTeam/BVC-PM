@@ -105,7 +105,9 @@ final class Util {
 		return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
 	}
 
-	/** Map a PMMP world folder name to a BVC dimension name, using an optional override map. */
+	/** Map a PMMP world folder name to a BVC dimension name, using an optional override map.
+	 * @param array<string, string> $dimensionMap
+	 */
 	public static function dimensionFor(World $world, array $dimensionMap) : string {
 		$folder = $world->getFolderName();
 		if (isset($dimensionMap[$folder])) {
@@ -127,6 +129,7 @@ final class Util {
 			return null;
 		}
 		$tag = $item->getNamedTag();
+		/** @var \pocketmine\nbt\tag\CompoundTag $tag */
 		if ($tag->getByte('bvc:is_bvc_disc', 0) !== 1) {
 			return null;
 		}

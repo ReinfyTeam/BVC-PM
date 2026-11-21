@@ -31,9 +31,10 @@ declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\http;
 
-use pocketmine\thread\ThreadSafeArray;
+use pmmp\thread\ThreadSafeArray;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
+use pocketmine\scheduler\TaskHandler;
 
 /**
  * Asynchronous HTTP client backed by a dedicated worker thread.
@@ -52,7 +53,7 @@ final class HttpClient {
 	private ThreadSafeArray $toThread;
 	private ThreadSafeArray $fromThread;
 	private ?HttpWorkerThread $worker = null;
-	private ?\pocketmine\scheduler\RepeatingTask $poller = null;
+	private ?TaskHandler $poller = null;
 
 	public function __construct(BVC $plugin) {
 		$this->plugin = $plugin;
@@ -66,21 +67,17 @@ final class HttpClient {
 		$this->worker->start();
 
 		// Poll results back on the main thread every tick
-		$this->poller = new class($this) extends \pocketmine\scheduler\RepeatingTask {
-			private HttpClient $client;
-			public function __construct(HttpClient $client) {
-				$this->client = $client;
-			}
-			public function execute(int $currentTick) : void {
-				$this->client->pollResults();
-			}
-		};
-		$this->plugin->getScheduler()->scheduleRepeatingTask($this->poller, 1);
+		$this->poller = $this->plugin->getScheduler()->scheduleRepeatingTask(
+			new \pocketmine\scheduler\ClosureTask(function() : void {
+				$this->pollResults();
+			}),
+			1
+		);
 	}
 
 	public function stop() : void {
 		if ($this->poller !== null) {
-			$this->plugin->getScheduler()->cancelTask($this->poller->getTaskId());
+			$this->poller->cancel();
 			$this->poller = null;
 		}
 		if ($this->worker !== null) {
@@ -111,18 +108,25 @@ final class HttpClient {
 	}
 
 	private function pollResults() : void {
-		while (($result = $this->fromThread->shift()) !== null) {
-			$seq = (int) ($result['seq'] ?? 0);
+		while (true) {
+			$result = $this->fromThread->shift();
+			if ($result === null) {
+				break;
+			}
+			if (!is_array($result)) {
+				continue;
+			}
+			$seq = intval($result['seq'] ?? 0);
 			$callback = self::$pendingCallbacks[$seq] ?? null;
 			unset(self::$pendingCallbacks[$seq]);
 			if ($callback !== null) {
-				$status = (int) ($result['httpCode'] ?? 0);
-				$error = (string) ($result['error'] ?? '');
+				$status = intval($result['httpCode'] ?? 0);
+				$error = strval($result['error'] ?? '');
 				$this->plugin->debug("[HttpClient] Finished request #{$seq}: status={$status}" . ($error !== '' ? " error={$error}" : ""));
 				try {
 					($callback)(
 						$status,
-						(string) ($result['body'] ?? ''),
+						strval($result['body'] ?? ''),
 						$error
 					);
 				} catch(\Throwable $e) {

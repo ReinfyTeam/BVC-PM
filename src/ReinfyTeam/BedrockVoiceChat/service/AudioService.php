@@ -32,6 +32,7 @@ declare(strict_types=1);
 namespace ReinfyTeam\BedrockVoiceChat\service;
 
 use pocketmine\block\Jukebox;
+use pocketmine\block\tile\Container;
 use pocketmine\item\Record;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
@@ -80,14 +81,16 @@ final class AudioService {
 
 	public function loadConfig() : void {
 		$this->autoEjectDiscs = (bool) $this->config->get('auto_eject_discs', true);
-		$this->httpTimeout = max(1, (int) $this->config->get('http_timeout_seconds', 5));
+		$httpTimeoutValue = $this->config->get('http_timeout_seconds', 5);
+		$this->httpTimeout = is_int($httpTimeoutValue) ? $httpTimeoutValue : 5;
+		$this->httpTimeout = max(1, $this->httpTimeout);
 	}
 
 	/**
 	 * Restore active discs from world dynamic properties (survives server restarts).
 	 */
 	public function loadDiscs() : void {
-		$world = $this->plugin->getServer()->getDefaultWorld();
+		$world = $this->plugin->getServer()->getWorldManager()->getDefaultWorld();
 		if ($world === null) {
 			return;
 		}
@@ -104,24 +107,37 @@ final class AudioService {
 			if (isset($this->activeDiscs[$key])) {
 				continue;
 			}
+			if (!is_array($data)) {
+				continue;
+			}
 			$x = $data['x'] ?? $data['coordinates']['x'] ?? null;
 			$y = $data['y'] ?? $data['coordinates']['y'] ?? null;
 			$z = $data['z'] ?? $data['coordinates']['z'] ?? null;
-			if (!is_array($data) || !isset($data['audioId']) || $x === null || $y === null || $z === null) {
+			if (!isset($data['audioId']) || $x === null || $y === null || $z === null) {
+				continue;
+			}
+			$audioId = $data['audioId'];
+			if (!is_string($audioId)) {
+				continue;
+			}
+			if (!is_int($x) || !is_int($y) || !is_int($z)) {
 				continue;
 			}
 			$worldName = $data['world'] ?? $data['dimensionId'] ?? $world->getFolderName();
+			if (!is_string($worldName)) {
+				$worldName = $world->getFolderName();
+			}
 			$targetWorld = $this->plugin->getServer()->getWorldManager()->getWorldByName($worldName);
 			if ($targetWorld === null) {
 				$targetWorld = $world;
 			}
 			$disc = new AudioDisc(
 				$key,
-				(string) $data['audioId'],
+				$audioId,
 				$targetWorld,
-				(int) $x,
-				(int) $y,
-				(int) $z
+				$x,
+				$y,
+				$z
 			);
 			$this->activeDiscs[$key] = $disc;
 			$restored++;
@@ -135,7 +151,7 @@ final class AudioService {
 	 * Persist active discs to world dynamic properties.
 	 */
 	public function persistDiscs() : void {
-		$world = $this->plugin->getServer()->getDefaultWorld();
+		$world = $this->plugin->getServer()->getWorldManager()->getDefaultWorld();
 		if ($world === null) {
 			return;
 		}
@@ -167,6 +183,9 @@ final class AudioService {
 		return trim((string) $this->config->get('access_token', ''));
 	}
 
+	/**
+	 * @return array<string, string>
+	 */
 	public function headers(bool $json = false) : array {
 		$headers = ['Authorization' => 'Bearer ' . $this->token(), 'Accept' => 'application/json'];
 		if ($json) {
@@ -175,6 +194,9 @@ final class AudioService {
 		return $headers;
 	}
 
+	/**
+	 * @return array<string, AudioDisc>
+	 */
 	public function getActiveDiscs() : array {
 		return $this->activeDiscs;
 	}
@@ -190,10 +212,6 @@ final class AudioService {
 			return;
 		}
 		$item = VanillaItems::RECORD_5();
-		if (!$item instanceof Record) {
-			$player->sendMessage($this->config->message('disc_no_item'));
-			return;
-		}
 		$tag = $item->getNamedTag();
 		$tag->setString('bvc:audio_id', $audioId);
 		$tag->setByte('bvc:is_bvc_disc', 1);
@@ -342,12 +360,25 @@ final class AudioService {
 					return;
 				}
 				if (!isset($this->activeDiscs[$disc->key])) {
-					$this->deleteAudioEvent((string) $data['event_id']);
+					$eventIdValue = $data['event_id'];
+					if (is_string($eventIdValue)) {
+						$this->deleteAudioEvent($eventIdValue);
+					}
 					return;
 				}
-				$this->activeDiscs[$disc->key]->eventId = (string) $data['event_id'];
+				$eventIdValue = $data['event_id'];
+				if (!is_string($eventIdValue)) {
+					$this->ejectBvcDisc($disc->key);
+					return;
+				}
+				$this->activeDiscs[$disc->key]->eventId = $eventIdValue;
 				if ($this->autoEjectDiscs) {
-					$ticks = max(1, (int) ceil(((float) $data['duration_ms']) / 50));
+					$durationMs = $data['duration_ms'];
+					if (!is_int($durationMs) && !is_float($durationMs)) {
+						$this->ejectBvcDisc($disc->key);
+						return;
+					}
+					$ticks = max(1, (int) ceil((float) $durationMs / 50));
 					$this->plugin->getScheduler()->scheduleDelayedTask(new \pocketmine\scheduler\ClosureTask(function() use ($disc) : void {
 						$this->ejectBvcDisc($disc->key);
 					}), $ticks);
@@ -382,7 +413,7 @@ final class AudioService {
 		}
 
 		// Scan for hoppers adjacent to jukeboxes that might contain BVC discs
-		foreach ($this->plugin->getServer()->getWorlds() as $world) {
+		foreach ($this->plugin->getServer()->getWorldManager()->getWorlds() as $world) {
 			foreach ($world->getBlocks() as $block) {
 				if (!$block instanceof Jukebox) {
 					continue;
@@ -398,9 +429,6 @@ final class AudioService {
 				}
 				// Insert the disc automatically
 				$item = VanillaItems::RECORD_5();
-				if (!$item instanceof Record) {
-					continue;
-				}
 				$tag = $item->getNamedTag();
 				$tag->setString('bvc:audio_id', $audioId);
 				$tag->setByte('bvc:is_bvc_disc', 1);
@@ -424,7 +452,10 @@ final class AudioService {
 		foreach ($neighbors as $n) {
 			$neighborPos = new Vector3($pos->x + $n[0], $pos->y + $n[1], $pos->z + $n[2]);
 			$neighbor = $world->getBlock($neighborPos);
-			if ($neighbor === null || !str_contains($neighbor->getTypeId(), 'hopper')) {
+			if ($neighbor === null || !str_contains((string) $neighbor->getTypeId(), 'hopper')) {
+				continue;
+			}
+			if (!$neighbor instanceof Container) {
 				continue;
 			}
 			$inventory = $neighbor->getInventory();

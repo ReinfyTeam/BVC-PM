@@ -43,11 +43,9 @@ use function trim;
  */
 final class DiscForm extends CustomForm {
 	private BVC $plugin;
-	private ConfigManager $config;
 
 	public function __construct(BVC $plugin, ConfigManager $config) {
 		$this->plugin = $plugin;
-		$this->config = $config;
 		parent::__construct(function(Player $player, mixed $data) : void {
 			$this->handleResponse($player, $data);
 		});
@@ -60,7 +58,14 @@ final class DiscForm extends CustomForm {
 		if ($data === null) {
 			return;
 		}
-		$audioId = trim((string) ($data['audioId'] ?? ''));
+		if (!is_array($data)) {
+			return;
+		}
+		$audioIdValue = $data['audioId'] ?? '';
+		if (!is_string($audioIdValue)) {
+			$audioIdValue = '';
+		}
+		$audioId = trim($audioIdValue);
 		if ($audioId === '') {
 			return;
 		}

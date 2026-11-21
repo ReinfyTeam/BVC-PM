@@ -49,6 +49,9 @@ final class HelpSubCommand extends BaseSubCommand {
 		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$isAdmin = Util::isAdmin($sender, $this->plugin);
 		$sender->sendMessage($this->plugin->config->message('help_title'));

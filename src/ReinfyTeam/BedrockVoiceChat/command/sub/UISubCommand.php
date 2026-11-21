@@ -50,6 +50,9 @@ final class UISubCommand extends BaseSubCommand {
 		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		if (!$sender instanceof Player) {
 			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));

@@ -56,15 +56,24 @@ final class RecordSubCommand extends BaseSubCommand {
 		$this->registerArgument(1, new TargetPlayerArgument(true, 'player'));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$stateRaw = $args['state'] ?? null;
-		$parsed = Util::parseBoolean($stateRaw !== null ? (string) $stateRaw : null);
+		if ($stateRaw !== null && !is_string($stateRaw)) {
+			$stateRaw = strval($stateRaw);
+		}
+		$parsed = Util::parseBoolean($stateRaw !== null ? $stateRaw : null);
 		if ($parsed === null) {
 			$sender->sendMessage($this->plugin->config->message('boolean_usage', ['sub' => 'record']));
 			return;
 		}
 
-		$targetName = isset($args['player']) ? trim((string) $args['player']) : '';
+		$targetName = '';
+		if (isset($args['player']) && is_string($args['player'])) {
+			$targetName = trim($args['player']);
+		}
 		if ($targetName !== '') {
 			if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 				if (!Util::isAdmin($sender, $this->plugin)) {

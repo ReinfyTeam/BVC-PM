@@ -56,10 +56,23 @@ final class PrefSubCommand extends BaseSubCommand {
 		$this->registerArgument(2, new RawStringArgument('third', true));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$first = $args['first'] ?? null;
 		$second = $args['second'] ?? null;
 		$third = $args['third'] ?? null;
+
+		if ($first !== null && !is_string($first)) {
+			$first = strval($first);
+		}
+		if ($second !== null && !is_string($second)) {
+			$second = strval($second);
+		}
+		if ($third !== null && !is_string($third)) {
+			$third = strval($third);
+		}
 
 		// Case 1: /bvc pref <volume 0-150> <heard on|off> for caller
 		if ($third === null && is_numeric($first)) {

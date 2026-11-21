@@ -55,9 +55,19 @@ final class VolumeSubCommand extends BaseSubCommand {
 		$this->registerArgument(1, new RawStringArgument('second', true));
 	}
 
+	/**
+	 * @param array<string, mixed> $args
+	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$first = $args['first'] ?? null;
 		$second = $args['second'] ?? null;
+
+		if ($first !== null && !is_string($first)) {
+			$first = strval($first);
+		}
+		if ($second !== null && !is_string($second)) {
+			$second = strval($second);
+		}
 
 		if ($first === null) {
 			$sender->sendMessage($this->plugin->config->message('volume_usage'));
