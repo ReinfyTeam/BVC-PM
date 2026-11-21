@@ -38,7 +38,7 @@
         "analyze": "phpstan analyse --no-progress",
         "build": [
             "@php tools/prepare-build.php",
-            "@php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=./build/Zuri.phar",
+            "@php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=./build/BedrockVoiceChat.phar",
             "@php tools/verify-build.php"
         ],
         "build-source": [

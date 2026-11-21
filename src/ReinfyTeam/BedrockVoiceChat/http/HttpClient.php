@@ -1,10 +1,36 @@
 <?php
 
+/*
+ *
+ *  ____           _            __           _____
+ * |  _ \    ___  (_)  _ __    / _|  _   _  |_   _|   ___    __ _   _ __ ___
+ * | |_) |  / _ \ | | | '_ \  | |_  | | | |   | |    / _ \  / _` | | '_ ` _ \
+ * |  _ <  |  __/ | | | | | | |  _| | |_| |   | |   |  __/ | (_| | | | | | | |
+ * |_| \_\  \___| |_| |_| |_| |_|    \__, |   |_|    \___|  \__,_| |_| |_| |_|
+ *                                   |___/
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
+ * players from abusing weaknesses in Minecraft or its protocol, making your server
+ * more safe. Organized in different sections, various checks are performed to test
+ * players doing, covering a wide range including flying and speeding, fighting
+ * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
+ * of malicious behaviour.
+ *
+ * @author ReinfyTeam
+ * @link https://github.com/ReinfyTeam/
+ *
+ *
+ */
+
 declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\http;
 
-use pocketmine\plugin\PluginBase;
 use pocketmine\thread\ThreadSafeArray;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
@@ -17,93 +43,92 @@ use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
  * so they are free to use the PocketMine API. This never blocks the server's
  * main thread and can handle 100+ players without stalling.
  */
-final class HttpClient{
+final class HttpClient {
+	/** @var array<int, callable(int, string, string): void> */
+	private static array $pendingCallbacks = [];
+	private static int $nextSeq = 0;
 
-    /** @var array<int, callable(int, string, string): void> */
-    private static array $pendingCallbacks = [];
-    private static int $nextSeq = 0;
+	private BVC $plugin;
+	private ThreadSafeArray $toThread;
+	private ThreadSafeArray $fromThread;
+	private ?HttpWorkerThread $worker = null;
+	private ?\pocketmine\scheduler\RepeatingTask $poller = null;
 
-    private BVC $plugin;
-    private ThreadSafeArray $toThread;
-    private ThreadSafeArray $fromThread;
-    private ?HttpWorkerThread $worker = null;
-    private ?\pocketmine\scheduler\RepeatingTask $poller = null;
+	public function __construct(BVC $plugin) {
+		$this->plugin = $plugin;
+	}
 
-    public function __construct(BVC $plugin){
-        $this->plugin = $plugin;
-    }
+	public function start() : void {
+		$this->toThread = new ThreadSafeArray();
+		$this->fromThread = new ThreadSafeArray();
 
-    public function start(): void{
-        $this->toThread = new ThreadSafeArray();
-        $this->fromThread = new ThreadSafeArray();
+		$this->worker = new HttpWorkerThread($this->toThread, $this->fromThread);
+		$this->worker->start();
 
-        $this->worker = new HttpWorkerThread($this->toThread, $this->fromThread);
-        $this->worker->start();
+		// Poll results back on the main thread every tick
+		$this->poller = new class($this) extends \pocketmine\scheduler\RepeatingTask {
+			private HttpClient $client;
+			public function __construct(HttpClient $client) {
+				$this->client = $client;
+			}
+			public function execute(int $currentTick) : void {
+				$this->client->pollResults();
+			}
+		};
+		$this->plugin->getScheduler()->scheduleRepeatingTask($this->poller, 1);
+	}
 
-        // Poll results back on the main thread every tick
-        $this->poller = new class($this) extends \pocketmine\scheduler\RepeatingTask{
-            private HttpClient $client;
-            public function __construct(HttpClient $client){
-                $this->client = $client;
-            }
-            public function execute(int $currentTick): void{
-                $this->client->pollResults();
-            }
-        };
-        $this->plugin->getScheduler()->scheduleRepeatingTask($this->poller, 1);
-    }
+	public function stop() : void {
+		if ($this->poller !== null) {
+			$this->plugin->getScheduler()->cancelTask($this->poller->getTaskId());
+			$this->poller = null;
+		}
+		if ($this->worker !== null) {
+			$this->worker->stop();
+			$this->worker->join();
+			$this->worker = null;
+		}
+	}
 
-    public function stop(): void{
-        if($this->poller !== null){
-            $this->plugin->getScheduler()->cancelTask($this->poller->getTaskId());
-            $this->poller = null;
-        }
-        if($this->worker !== null){
-            $this->worker->stop();
-            $this->worker->join();
-            $this->worker = null;
-        }
-    }
+	/**
+	 * @param array<string, string> $headers
+	 * @param callable(int, string, string): void $callback receives HTTP status, body and cURL error
+	 */
+	public function request(string $method, string $url, array $headers, ?string $body, callable $callback, int $timeout = 5) : void {
+		$seq = ++self::$nextSeq;
+		self::$pendingCallbacks[$seq] = $callback;
 
-    /**
-     * @param array<string, string> $headers
-     * @param callable(int, string, string): void $callback receives HTTP status, body and cURL error
-     */
-    public function request(string $method, string $url, array $headers, ?string $body, callable $callback, int $timeout = 5): void{
-        $seq = ++self::$nextSeq;
-        self::$pendingCallbacks[$seq] = $callback;
+		$this->plugin->debug("[HttpClient] Dispatched request #{$seq}: {$method} {$url} (timeout: {$timeout}s)");
 
-        $this->plugin->debug("[HttpClient] Dispatched request #{$seq}: {$method} {$url} (timeout: {$timeout}s)");
+		$this->toThread[] = [
+			'seq' => $seq,
+			'method' => $method,
+			'url' => $url,
+			'headers' => $headers,
+			'body' => $body,
+			'timeout' => $timeout,
+		];
+	}
 
-        $this->toThread[] = [
-            'seq' => $seq,
-            'method' => $method,
-            'url' => $url,
-            'headers' => $headers,
-            'body' => $body,
-            'timeout' => $timeout,
-        ];
-    }
-
-    private function pollResults(): void{
-        while(($result = $this->fromThread->shift()) !== null){
-            $seq = (int) ($result['seq'] ?? 0);
-            $callback = self::$pendingCallbacks[$seq] ?? null;
-            unset(self::$pendingCallbacks[$seq]);
-            if($callback !== null){
-                $status = (int) ($result['httpCode'] ?? 0);
-                $error = (string) ($result['error'] ?? '');
-                $this->plugin->debug("[HttpClient] Finished request #{$seq}: status={$status}" . ($error !== '' ? " error={$error}" : ""));
-                try{
-                    ($callback)(
-                        $status,
-                        (string) ($result['body'] ?? ''),
-                        $error
-                    );
-                }catch(\Throwable $e){
-                    $this->plugin->getLogger()->error('BVC HTTP callback failed: ' . $e->getMessage());
-                }
-            }
-        }
-    }
+	private function pollResults() : void {
+		while (($result = $this->fromThread->shift()) !== null) {
+			$seq = (int) ($result['seq'] ?? 0);
+			$callback = self::$pendingCallbacks[$seq] ?? null;
+			unset(self::$pendingCallbacks[$seq]);
+			if ($callback !== null) {
+				$status = (int) ($result['httpCode'] ?? 0);
+				$error = (string) ($result['error'] ?? '');
+				$this->plugin->debug("[HttpClient] Finished request #{$seq}: status={$status}" . ($error !== '' ? " error={$error}" : ""));
+				try {
+					($callback)(
+						$status,
+						(string) ($result['body'] ?? ''),
+						$error
+					);
+				} catch(\Throwable $e) {
+					$this->plugin->getLogger()->error('BVC HTTP callback failed: ' . $e->getMessage());
+				}
+			}
+		}
+	}
 }

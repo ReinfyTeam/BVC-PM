@@ -1,0 +1,62 @@
+name: Publish plugin release
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-phar:
+    name: Build release PHAR
+    if: startsWith(github.event.head_commit.message, 'Release ')
+    uses: AxolotlBucketLabs/DevTools/.github/workflows/build-plugin.yml@latest
+    with:
+      axolotl-ref: e881fc1bc1c401545baf6bd1f824e41ff3f57bd1
+      php-version: '8.4'
+      pm-version-major: '5'
+      phpstan: max
+      artifact-name: FakeWaterdogTransfer-release-${{ github.sha }}
+
+  publish-release:
+    name: Publish draft GitHub release
+    if: startsWith(github.event.head_commit.message, 'Release ')
+    needs: build-phar
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified PHAR artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: FakeWaterdogTransfer-release-${{ github.sha }}
+          path: release
+
+      - name: Create draft GitHub release
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          subject="${COMMIT_MESSAGE%%$'\n'*}"
+          if [[ ! "$subject" =~ ^Release\ ([0-9]+([.][0-9]+)*)$ ]]; then
+            echo 'The commit subject must match Release x.y.z.' >&2
+            exit 2
+          fi
+          version="${BASH_REMATCH[1]}"
+          notes="${COMMIT_MESSAGE#"$subject"}"
+          notes="${notes#$'\n'}"
+          if [[ -z "$notes" ]]; then
+            notes="Release v$version"
+          fi
+          test -f release/FakeWaterdogTransfer.phar
+          gh release create "v$version" release/FakeWaterdogTransfer.phar \
+            --repo "$REPOSITORY" \
+            --target "$SHA" \
+            --title "FakeWaterdogTransfer: v$version" \
+            --notes "$notes" \
+            --draft

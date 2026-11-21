@@ -1,5 +1,32 @@
 <?php
 
+/*
+ *
+ *  ____           _            __           _____
+ * |  _ \    ___  (_)  _ __    / _|  _   _  |_   _|   ___    __ _   _ __ ___
+ * | |_) |  / _ \ | | | '_ \  | |_  | | | |   | |    / _ \  / _` | | '_ ` _ \
+ * |  _ <  |  __/ | | | | | | |  _| | |_| |   | |   |  __/ | (_| | | | | | | |
+ * |_| \_\  \___| |_| |_| |_| |_|    \__, |   |_|    \___|  \__,_| |_| |_| |_|
+ *                                   |___/
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
+ * players from abusing weaknesses in Minecraft or its protocol, making your server
+ * more safe. Organized in different sections, various checks are performed to test
+ * players doing, covering a wide range including flying and speeding, fighting
+ * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
+ * of malicious behaviour.
+ *
+ * @author ReinfyTeam
+ * @link https://github.com/ReinfyTeam/
+ *
+ *
+ */
+
 declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\util;
@@ -12,25 +39,24 @@ use pocketmine\world\World;
 /**
  * Data carrier for jukebox right-click interactions.
  */
-final class PlayerInteractData{
+final class PlayerInteractData {
+	public Player $player;
+	public Jukebox $block;
+	public World $world;
+	public Vector3 $position;
+	public \pocketmine\event\player\PlayerInteractEvent $event;
 
-    public Player $player;
-    public Jukebox $block;
-    public World $world;
-    public Vector3 $position;
-    public \pocketmine\event\player\PlayerInteractEvent $event;
-
-    public function __construct(
-        Player $player,
-        Jukebox $block,
-        World $world,
-        Vector3 $position,
-        \pocketmine\event\player\PlayerInteractEvent $event
-    ){
-        $this->player = $player;
-        $this->block = $block;
-        $this->world = $world;
-        $this->position = $position;
-        $this->event = $event;
-    }
+	public function __construct(
+		Player $player,
+		Jukebox $block,
+		World $world,
+		Vector3 $position,
+		\pocketmine\event\player\PlayerInteractEvent $event
+	) {
+		$this->player = $player;
+		$this->block = $block;
+		$this->world = $world;
+		$this->position = $position;
+		$this->event = $event;
+	}
 }
