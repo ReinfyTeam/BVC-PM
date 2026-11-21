@@ -35,7 +35,6 @@ use pmmp\thread\ThreadSafeArray;
 use pocketmine\thread\Thread;
 use Throwable;
 use function count;
-use function curl_close;
 use function curl_error;
 use function curl_exec;
 use function curl_getinfo;
