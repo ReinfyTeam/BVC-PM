@@ -2,7 +2,7 @@
 name: BedrockVoiceChat
 version: 0.0.1-BETA
 main: ReinfyTeam\BedrockVoiceChat\BVC
-api: 5.0.0
+api: 5.36.0
 author: ReinfyTeam
 description: Fully asynchronous Bedrock Voice Chat integration for PocketMine-MP servers.
 ...
