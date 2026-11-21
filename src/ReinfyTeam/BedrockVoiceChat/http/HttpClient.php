@@ -34,6 +34,8 @@ namespace ReinfyTeam\BedrockVoiceChat\http;
 use pmmp\thread\ThreadSafeArray;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
+use pocketmine\scheduler\ClosureTask;
+use pocketmine\scheduler\Task;
 use pocketmine\scheduler\TaskHandler;
 
 /**
@@ -53,7 +55,8 @@ final class HttpClient {
 	private ThreadSafeArray $toThread;
 	private ThreadSafeArray $fromThread;
 	private ?HttpWorkerThread $worker = null;
-	private ?TaskHandler $poller = null;
+	/** @var TaskHandler<ClosureTask>|null */
+	private $poller = null;
 
 	public function __construct(BVC $plugin) {
 		$this->plugin = $plugin;
@@ -116,17 +119,22 @@ final class HttpClient {
 			if (!is_array($result)) {
 				continue;
 			}
-			$seq = intval($result['seq'] ?? 0);
+			$seqValue = $result['seq'] ?? 0;
+			$seq = is_int($seqValue) ? $seqValue : 0;
 			$callback = self::$pendingCallbacks[$seq] ?? null;
 			unset(self::$pendingCallbacks[$seq]);
 			if ($callback !== null) {
-				$status = intval($result['httpCode'] ?? 0);
-				$error = strval($result['error'] ?? '');
+				$statusValue = $result['httpCode'] ?? 0;
+				$status = is_int($statusValue) ? $statusValue : 0;
+				$errorValue = $result['error'] ?? '';
+				$error = is_string($errorValue) ? $errorValue : '';
+				$bodyValue = $result['body'] ?? '';
+				$body = is_string($bodyValue) ? $bodyValue : '';
 				$this->plugin->debug("[HttpClient] Finished request #{$seq}: status={$status}" . ($error !== '' ? " error={$error}" : ""));
 				try {
 					($callback)(
 						$status,
-						strval($result['body'] ?? ''),
+						$body,
 						$error
 					);
 				} catch(\Throwable $e) {

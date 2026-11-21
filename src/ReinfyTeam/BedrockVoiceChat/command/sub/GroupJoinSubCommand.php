@@ -61,10 +61,10 @@ final class GroupJoinSubCommand extends BaseSubCommand {
 			return;
 		}
 		$code = $args['code'] ?? null;
-		if ($code !== null && !is_string($code)) {
-			$code = strval($code);
+		if (!is_string($code)) {
+			$code = null;
 		}
-		if ($code === null || trim((string) $code) === '') {
+		if ($code === null || trim($code) === '') {
 			$sender->sendMessage($this->plugin->config->message('group_join_usage'));
 			return;
 		}

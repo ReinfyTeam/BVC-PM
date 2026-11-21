@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "254b347622fcbb7dfe054aadc67998bf",
+    "content-hash": "4d4006394415636f0982d8d1deda8a16",
     "packages": [
         {
             "name": "adhocore/json-comment",
@@ -465,6 +465,51 @@
             ],
             "time": "2026-09-12T10:28:18+00:00",
             "published-time": "2026-09-12T12:23:30+00:00"
+        },
+        {
+            "name": "jojoe77777/libformapi",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AxolotlBucketLabs/FormAPI.git",
+                "reference": "53190ef9c1edb9d005acab620597ca7db46d1fd4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AxolotlBucketLabs/FormAPI/zipball/53190ef9c1edb9d005acab620597ca7db46d1fd4",
+                "reference": "53190ef9c1edb9d005acab620597ca7db46d1fd4",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "axolotl-pm/pocketmine-mp": "5.51.1",
+                "phpstan/phpstan": "^2.3"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "jojoe77777\\FormAPI\\": "src/jojoe77777/FormAPI/"
+                }
+            },
+            "scripts": {
+                "phpstan": [
+                    "@php vendor/bin/phpstan analyse --level=max --no-progress src tests"
+                ],
+                "test": [
+                    "@php tests/forms.php"
+                ]
+            },
+            "license": [
+                "LGPL-3.0-only"
+            ],
+            "description": "Form API and response validation for Axolotl-PM plugins",
+            "support": {
+                "source": "https://github.com/AxolotlBucketLabs/FormAPI/tree/main"
+            },
+            "time": "2026-11-10T13:21:09+00:00"
         },
         {
             "name": "muqsit/simple-packet-handler",
@@ -4829,6 +4874,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "jojoe77777/libformapi": 20,
         "paroxity/commando": 20
     },
     "prefer-stable": false,

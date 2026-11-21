@@ -58,8 +58,6 @@ use function usleep;
  * $fromThread on a repeating task.
  */
 final class HttpWorkerThread extends Thread {
-	/** @var array<string, mixed> */
-	private array $requests = [];
 	private bool $running = true;
 
 	public function __construct(
@@ -88,18 +86,21 @@ final class HttpWorkerThread extends Thread {
 	}
 
 	/**
-	 * @param array<string, mixed> $data
+	 * @param array<mixed, mixed> $data
 	 * @return array<string, mixed>
 	 */
 	private function executeRequest(array $data) : array {
 		$seqValue = $data['seq'] ?? 0;
 		$seq = is_int($seqValue) ? $seqValue : 0;
-		$method = is_string($data['method'] ?? null) ? $data['method'] : 'GET';
-		$url = is_string($data['url'] ?? null) ? $data['url'] : '';
-		$headers = is_array($data['headers'] ?? null) ? $data['headers'] : [];
+		$methodValue = $data['method'] ?? null;
+		$method = is_string($methodValue) ? $methodValue : 'GET';
+		$urlValue = $data['url'] ?? null;
+		$url = is_string($urlValue) ? $urlValue : '';
+		$headersValue = $data['headers'] ?? null;
+		$headers = is_array($headersValue) ? $headersValue : [];
 		$body = $data['body'] ?? null;
 		if ($body !== null && !is_string($body)) {
-			$body = strval($body);
+			$body = '';
 		}
 		$timeoutValue = $data['timeout'] ?? 5;
 		$timeout = is_int($timeoutValue) ? $timeoutValue : 5;
@@ -111,21 +112,25 @@ final class HttpWorkerThread extends Thread {
 
 		$headerLines = [];
 		foreach ($headers as $name => $value) {
+			if (!is_string($name) || !is_string($value) || $name === '' || $value === '') {
+				continue;
+			}
 			$headerLines[] = $name . ': ' . $value;
 		}
 
-		curl_setopt_array($ch, [
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_CUSTOMREQUEST => strtoupper($method),
-			CURLOPT_HTTPHEADER => $headerLines,
-			CURLOPT_CONNECTTIMEOUT => min(3, max(1, $timeout)),
-			CURLOPT_TIMEOUT => max(1, $timeout),
-			CURLOPT_SSL_VERIFYPEER => true,
-			CURLOPT_SSL_VERIFYHOST => 2,
-			CURLOPT_FOLLOWLOCATION => false,
-			CURLOPT_NOSIGNAL => true,
-			CURLOPT_USERAGENT => 'BVC-PMMP-Plugin/2.0.0'
-		]);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		$methodUpper = strtoupper($method);
+		if ($methodUpper !== '') {
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $methodUpper);
+		}
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $headerLines);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(3, max(1, $timeout)));
+		curl_setopt($ch, CURLOPT_TIMEOUT, max(1, $timeout));
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+		curl_setopt($ch, CURLOPT_NOSIGNAL, true);
+		curl_setopt($ch, CURLOPT_USERAGENT, 'BVC-PMMP-Plugin/2.0.0');
 		if ($body !== null) {
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
 		}

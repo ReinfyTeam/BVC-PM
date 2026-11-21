@@ -155,10 +155,11 @@ final class ConfigManager {
 	}
 
 	private function loadAndMigrateMessages() : void {
-		$this->messagesFile = $this->config->get("messages_file", "messages.yml");
-		if (!is_string($this->messagesFile)) {
-			$this->messagesFile = "messages.yml";
+		$rawMessagesFile = $this->config->get("messages_file", "messages.yml");
+		if (!is_string($rawMessagesFile)) {
+			$rawMessagesFile = "messages.yml";
 		}
+		$this->messagesFile = $rawMessagesFile;
 		$messagesPath = $this->plugin->getDataFolder() . $this->messagesFile;
 
 		if (!file_exists($messagesPath)) {

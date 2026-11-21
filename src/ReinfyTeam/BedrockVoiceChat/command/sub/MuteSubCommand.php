@@ -31,13 +31,15 @@ declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\command\sub;
 
-use CortexPE\Commando\args\RawStringArgument;
 use CortexPE\Commando\args\TargetPlayerArgument;
 use CortexPE\Commando\BaseSubCommand;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
+use ReinfyTeam\BedrockVoiceChat\command\args\OnOffArgument;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
+use function is_bool;
+use function is_string;
 use function strcasecmp;
 use function trim;
 
@@ -53,7 +55,7 @@ final class MuteSubCommand extends BaseSubCommand {
 	protected function prepare() : void {
 		$this->setPermission($this->plugin->config->getPermission('bvc.mute', 'bvc.mute'));
 		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
-		$this->registerArgument(0, new RawStringArgument('state'));
+		$this->registerArgument(0, new OnOffArgument('state'));
 		$this->registerArgument(1, new TargetPlayerArgument(true, 'player'));
 	}
 
@@ -61,12 +63,8 @@ final class MuteSubCommand extends BaseSubCommand {
 	 * @param array<string, mixed> $args
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
-		$stateRaw = $args['state'] ?? null;
-		if ($stateRaw !== null && !is_string($stateRaw)) {
-			$stateRaw = strval($stateRaw);
-		}
-		$parsed = Util::parseBoolean($stateRaw !== null ? $stateRaw : null);
-		if ($parsed === null) {
+		$state = $args['state'] ?? null;
+		if (!is_bool($state)) {
 			$sender->sendMessage($this->plugin->config->message('boolean_usage', ['sub' => 'mute']));
 			return;
 		}
@@ -87,7 +85,7 @@ final class MuteSubCommand extends BaseSubCommand {
 				$sender->sendMessage($this->plugin->config->message('player_not_found', ['name' => $targetName]));
 				return;
 			}
-			$this->plugin->voiceService->toggleMuteFor($sender, $target, $parsed);
+			$this->plugin->voiceService->toggleMuteFor($sender, $target, $state);
 			return;
 		}
 
@@ -95,6 +93,6 @@ final class MuteSubCommand extends BaseSubCommand {
 			$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
 			return;
 		}
-		$this->plugin->voiceService->toggleMute($sender, $parsed);
+		$this->plugin->voiceService->toggleMute($sender, $state);
 	}
 }

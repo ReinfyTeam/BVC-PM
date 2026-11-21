@@ -4,6 +4,10 @@
     "license": "LGPL-2.1-only",
     "type": "pocketmine-plugin",
     "repositories": [
+		{
+            "type": "vcs",
+            "url": "https://github.com/NhanAZ-Libraries/FormAPI/"
+        },
         {
             "type": "vcs",
             "url": "https://github.com/axolotl-pm/PocketMine-MP",
@@ -28,6 +32,7 @@
     },
 	"require": {
 		"paroxity/commando": "dev-master",
-		"muqsit/simple-packet-handler": "0.1.6"
+		"muqsit/simple-packet-handler": "0.1.6",
+		"jojoe77777/libformapi": "dev-main"
 	}
 }

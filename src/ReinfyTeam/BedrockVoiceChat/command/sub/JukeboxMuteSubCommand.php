@@ -31,11 +31,11 @@ declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\command\sub;
 
-use CortexPE\Commando\args\RawStringArgument;
 use CortexPE\Commando\BaseSubCommand;
 use pocketmine\command\CommandSender;
 use ReinfyTeam\BedrockVoiceChat\BVC;
-use ReinfyTeam\BedrockVoiceChat\util\Util;
+use ReinfyTeam\BedrockVoiceChat\command\args\OnOffArgument;
+use function is_bool;
 
 /**
  * @property BVC $plugin
@@ -48,7 +48,7 @@ final class JukeboxMuteSubCommand extends BaseSubCommand {
 	protected function prepare() : void {
 		$this->setPermission($this->plugin->config->getPermission('bvc', 'bvc.use'));
 		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
-		$this->registerArgument(0, new RawStringArgument('state'));
+		$this->registerArgument(0, new OnOffArgument('state'));
 	}
 
 	/**
@@ -56,14 +56,10 @@ final class JukeboxMuteSubCommand extends BaseSubCommand {
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$state = $args['state'] ?? null;
-		if ($state !== null && !is_string($state)) {
-			$state = strval($state);
-		}
-		$parsed = Util::parseBoolean($state !== null ? $state : null);
-		if ($parsed === null) {
+		if (!is_bool($state)) {
 			$sender->sendMessage($this->plugin->config->message('jukebox_mute_usage'));
 			return;
 		}
-		$this->plugin->voiceService->toggleJukeboxMute($sender, $parsed);
+		$this->plugin->voiceService->toggleJukeboxMute($sender, $state);
 	}
 }

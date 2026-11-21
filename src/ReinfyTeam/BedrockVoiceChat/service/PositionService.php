@@ -80,7 +80,6 @@ final class PositionService {
 		$this->minimumPlayers = max(1, is_int($minimumPlayersValue) ? $minimumPlayersValue : 1);
 		$batchSizeValue = $this->config->getPerformance('position_batch_size', 50);
 		$this->batchSize = max(1, is_int($batchSizeValue) ? $batchSizeValue : 50);
-		$this->batchSize = max(1, (int) $this->config->getPerformance('position_batch_size', 50));
 		$this->enablePolling = (bool) $this->config->getPerformance('enable_position_polling', true);
 		$rawDimensionMap = $this->config->get('dimension_map', []);
 		$this->dimensionMap = [];
@@ -175,6 +174,7 @@ final class PositionService {
 		}
 
 		// Process players in batches for large servers (100+ players)
+		/** @var array<string, mixed> $allRows */
 		$allRows = [];
 		foreach ($players as $player) {
 			$id = $player->getUniqueId()->toString();
@@ -202,6 +202,7 @@ final class PositionService {
 		$batchSize = max(1, $this->batchSize);
 		$batches = array_chunk($allRows, $batchSize);
 		foreach ($batches as $batch) {
+			/** @var array<string, mixed> $batch */
 			$this->sendPositionBatch($batch);
 		}
 	}

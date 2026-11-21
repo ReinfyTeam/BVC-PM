@@ -31,12 +31,15 @@ declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\command\sub;
 
-use CortexPE\Commando\args\RawStringArgument;
+use CortexPE\Commando\args\TargetPlayerArgument;
 use CortexPE\Commando\BaseSubCommand;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
+use ReinfyTeam\BedrockVoiceChat\command\args\OnOffArgument;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
+use function is_bool;
+use function is_string;
 use function strcasecmp;
 
 /**
@@ -50,52 +53,35 @@ final class HearSubCommand extends BaseSubCommand {
 	protected function prepare() : void {
 		$this->setPermission($this->plugin->config->getPermission('bvc.hear', 'bvc.hear'));
 		$this->setPermissionMessage($this->plugin->config->message('no_permission'));
-		$this->registerArgument(0, new RawStringArgument('first'));
-		$this->registerArgument(1, new RawStringArgument('second', true));
+		$this->registerArgument(0, new OnOffArgument('state'));
+		$this->registerArgument(0, new TargetPlayerArgument(false, 'player'));
+		$this->registerArgument(1, new OnOffArgument('state', true));
 	}
 
 	/**
 	 * @param array<string, mixed> $args
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
-		$first = $args['first'] ?? null;
-		$second = $args['second'] ?? null;
+		$state = $args['state'] ?? null;
+		$targetRaw = $args['player'] ?? null;
 
-		if ($first !== null && !is_string($first)) {
-			$first = strval($first);
-		}
-		if ($second !== null && !is_string($second)) {
-			$second = strval($second);
-		}
-
-		if ($first === null) {
+		if (!is_bool($state)) {
 			$sender->sendMessage($this->plugin->config->message('hear_usage'));
 			return;
 		}
 
 		// Case 1: single argument -> /bvc hear <on|off> for caller
-		if ($second === null) {
-			$parsed = Util::parseBoolean((string) $first);
-			if ($parsed === null) {
-				$sender->sendMessage($this->plugin->config->message('hear_usage'));
-				return;
-			}
+		if (!is_string($targetRaw) || $targetRaw === '') {
 			if (!$sender instanceof Player) {
 				$sender->sendMessage($this->plugin->config->message('player_must_be_ingame'));
 				return;
 			}
-			$this->plugin->voiceService->toggleHearingAll($sender, $parsed);
+			$this->plugin->voiceService->toggleHearingAll($sender, $state);
 			return;
 		}
 
 		// Case 2: two arguments -> /bvc hear <player> <on|off>
-		$targetName = (string) $first;
-		$parsed = Util::parseBoolean((string) $second);
-		if ($parsed === null) {
-			$sender->sendMessage($this->plugin->config->message('hear_usage'));
-			return;
-		}
-
+		$targetName = $targetRaw;
 		if ($sender instanceof Player && strcasecmp($sender->getName(), $targetName) !== 0) {
 			if (!Util::isAdmin($sender, $this->plugin)) {
 				$sender->sendMessage($this->plugin->config->message('only_self_allowed'));
@@ -108,6 +94,6 @@ final class HearSubCommand extends BaseSubCommand {
 			return;
 		}
 
-		$this->plugin->voiceService->toggleHear($sender, $targetName, $parsed);
+		$this->plugin->voiceService->toggleHear($sender, $targetName, $state);
 	}
 }

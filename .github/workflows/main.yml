@@ -1,4 +1,4 @@
-name: Build and validate FakeWaterdogTransfer plugin
+name: Build and validate BVC plugin
 
 on:
   push:

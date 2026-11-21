@@ -74,7 +74,11 @@ final class MainForm extends SimpleForm {
 		}
 		$voiceService = $this->plugin->voiceService;
 		if (!is_int($data)) {
-			$data = intval($data);
+			if (is_string($data) || is_float($data)) {
+				$data = intval($data);
+			} else {
+				$data = 0;
+			}
 		}
 		$index = $data;
 		$this->plugin->debug("[MainForm] Player '{$player->getName()}' selected button index {$index}");

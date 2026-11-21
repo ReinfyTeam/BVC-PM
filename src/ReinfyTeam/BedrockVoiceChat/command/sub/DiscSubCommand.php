@@ -61,10 +61,10 @@ final class DiscSubCommand extends BaseSubCommand {
 	 */
 	public function onRun(CommandSender $sender, string $aliasUsed, array $args) : void {
 		$audioId = $args['audioId'] ?? null;
-		if ($audioId !== null && !is_string($audioId)) {
-			$audioId = strval($audioId);
+		if (!is_string($audioId)) {
+			$audioId = null;
 		}
-		if ($audioId === null || trim((string) $audioId) === '') {
+		if ($audioId === null || trim($audioId) === '') {
 			$sender->sendMessage($this->plugin->config->message('disc_usage'));
 			return;
 		}
