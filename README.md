@@ -1,11 +1,12 @@
 # BedrockVoiceChat (BVC)
 
-[![PocketMine-MP API](https://img.shields.io/badge/PMMP%20API-5.0.0-blue.svg)](https://pmmp.io/)
-[![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.2-8892BF.svg)](https://www.php.net/)
-[![License](https://img.shields.io/badge/license-LGPL--3.0-green.svg)](LICENSE)
-[![PHPStan](https://img.shields.io/badge/PHPStan-level%20max%20passed-brightgreen.svg)](phpstan.neon.dist)
+[![Build](https://github.com/ReinfyTeam/BedrockVoiceChat/actions/workflows/build-phar.yml/badge.svg?branch=main&style=flat&label=Build)](https://github.com/ReinfyTeam/BedrockVoiceChat/actions/workflows/build-phar.yml)
+[![PocketMine-MP API](https://img.shields.io/badge/PMMP%20API-5.36.0-blue?style=flat)](https://pmmp.io/)
+[![PHP >=8.4](https://img.shields.io/badge/PHP-%3E%3D8.4-777BB4?logo=php&logoColor=white&style=flat)](https://www.php.net/releases/8.4/)
+[![License](https://img.shields.io/github/license/ReinfyTeam/BedrockVoiceChat?style=flat)](LICENSE)
+[![Discord server online members](https://img.shields.io/discord/995936412031520839?label=Discord&logo=discord&logoColor=white&color=5865F2&style=flat)](https://discord.gg/7u7qKsvSxg)
 
-**BedrockVoiceChat** is a high-performance, fully asynchronous proximity voice chat bridge for **PocketMine-MP (API 5.0.0)** servers. Designed to handle 100+ concurrent players without causing server tick drops or main-thread lag.
+**BedrockVoiceChat** is a high-performance, fully asynchronous proximity voice chat bridge for **PocketMine-MP 5.36.0+** servers. Designed to handle 100+ concurrent players without causing server tick drops or main-thread lag.
 
 ---
 
@@ -25,8 +26,8 @@
 
 | Component | Minimum Version | Notes |
 |---|---|---|
-| **PocketMine-MP** | `5.0.0` or higher | Full API 5 compatibility |
-| **PHP** | `8.2` or higher | Get from PHP-Builds on PMMP |
+| **PocketMine-MP** | `5.36.0` or higher | Full API 5 compatibility |
+| **PHP** | `8.4` or higher | Get from PHP-Builds on PMMP |
 | **BVC Desktop App** | Latest | Players need the BedrockVoiceChat desktop companion client |
 | **BVC Voice Server** | Latest | Self-hosted or hosted BVC voice proxy with domain and certificate, see [BVC Documentation](https://www.bedrockvoicechat.com/wiki/server/installation/) for installation. |
 
