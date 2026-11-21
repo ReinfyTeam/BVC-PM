@@ -22,9 +22,6 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
-      - name: Adapt PacketHandler for DevTools shading
-        run: git -C virions/PacketHandler apply ../../patches/simple-packet-handler-devtools.patch
-
       - name: Check out Axolotl-PM PHP setup helper
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

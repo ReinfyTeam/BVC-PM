@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5daa5a523c49d639d7077ca8daf343c8",
+    "content-hash": "1601342d925a7d5cad3bf51c19193e47",
     "packages": [],
     "packages-dev": [
         {
@@ -1071,20 +1071,27 @@
         },
         {
             "name": "muqsit/simple-packet-handler",
-            "version": "0.1.6",
+            "version": "v0.1.10",
             "source": {
                 "type": "git",
-                "url": "https://github.com/Muqsit/SimplePacketHandler.git",
-                "reference": "4e7b399c61f2def3c088ecde96e15d1f9858914f"
+                "url": "https://github.com/AxolotlBucketLabs/SimplePacketHandler.git",
+                "reference": "71e08e41c7aebae181647b26eb9bb30e4ff0a99e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Muqsit/SimplePacketHandler/zipball/4e7b399c61f2def3c088ecde96e15d1f9858914f",
-                "reference": "4e7b399c61f2def3c088ecde96e15d1f9858914f",
+                "url": "https://api.github.com/repos/AxolotlBucketLabs/SimplePacketHandler/zipball/71e08e41c7aebae181647b26eb9bb30e4ff0a99e",
+                "reference": "71e08e41c7aebae181647b26eb9bb30e4ff0a99e",
                 "shasum": ""
             },
             "require": {
+                "php": "^8.1",
                 "pocketmine/pocketmine-mp": "^5.0.0"
+            },
+            "require-dev": {
+                "axolotl-pm/pocketmine-mp": "5.51.1",
+                "phpstan/phpstan": "2.3.1",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpunit/phpunit": "^10.5"
             },
             "type": "library",
             "extra": {
@@ -1098,7 +1105,14 @@
                     "src"
                 ]
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "scripts": {
+                "test": [
+                    "phpunit"
+                ],
+                "analyse": [
+                    "phpstan analyse --level=max --no-progress"
+                ]
+            },
             "license": [
                 "GPL-3.0"
             ],
@@ -1108,12 +1122,11 @@
                     "email": "hackhack05@gmail.com"
                 }
             ],
-            "description": "Handle specific data packets (virion for PMMP API 4.0.0)",
+            "description": "Handle specific Axolotl-PM data packets",
             "support": {
-                "issues": "https://github.com/Muqsit/SimplePacketHandler/issues",
-                "source": "https://github.com/Muqsit/SimplePacketHandler/tree/0.1.6"
+                "source": "https://github.com/AxolotlBucketLabs/SimplePacketHandler/tree/v0.1.10"
             },
-            "time": "2026-02-17T11:40:38+00:00"
+            "time": "2026-11-04T21:40:37+00:00"
         },
         {
             "name": "netresearch/jsonmapper",

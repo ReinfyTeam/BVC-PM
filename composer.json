@@ -10,12 +10,17 @@
         },
         {
             "type": "vcs",
+            "url": "https://github.com/AxolotlBucketLabs/SimplePacketHandler.git"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/axolotl-pm/PocketMine-MP",
             "no-api": true
         }
     ],
     "scripts": {
-        "analyze": "vendor/bin/phpstan analyse src --level=max"
+        "analyze": "vendor/bin/phpstan analyse src --level=max",
+        "format:check": "vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --using-cache=no"
     },
     "autoload": {
         "psr-4": {
@@ -25,7 +30,7 @@
     "require-dev": {
         "axolotl-pm/pocketmine-mp": "5.51.1",
         "paroxity/commando": "dev-master",
-        "muqsit/simple-packet-handler": "0.1.6",
+        "muqsit/simple-packet-handler": "0.1.10",
         "jojoe77777/libformapi": "dev-main",
         "phpstan/phpstan": "^2.1",
         "friendsofphp/php-cs-fixer": "^3.58"
