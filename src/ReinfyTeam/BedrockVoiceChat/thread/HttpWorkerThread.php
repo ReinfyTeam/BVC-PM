@@ -169,7 +169,6 @@ final class HttpWorkerThread extends Thread {
 			$error = '';
 		}
 		$httpCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-		curl_close($ch);
 
 		return ThreadSafeArray::fromArray([
 			'seq' => $seq,
