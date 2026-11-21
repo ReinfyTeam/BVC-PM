@@ -1,56 +1,29 @@
 {
     "name": "reinfyteam/bedrockvoicechat",
-    "description": "PocketMine-MP bridge for BedrockVoiceChat.com proximity voice chat services.",
-    "type": "project",
-    "require": {
-        "paroxity/commando": "dev-master",
-        "reinfyteam/discordwebhookapi": "2.0.1",
-		"jojoe77777/libformapi": "dev-main",
-        "muqsit/simple-packet-handler": "0.1.6"
-    },
+    "description": "Fully asynchronous Bedrock Voice Chat (bedrockvoicechat.com) integration for PocketMine-MP servers.",
+    "license": "LGPL-2.1-only",
+    "type": "pocketmine-plugin",
     "repositories": [
         {
             "type": "vcs",
             "url": "https://github.com/axolotl-pm/PocketMine-MP",
             "no-api": true
-        },
-		{
-            "type": "vcs",
-            "url": "https://github.com/NhanAZ-Libraries/FormAPI/"
         }
     ],
-    "require-dev": {
-        "php": ">=8.2",
-        "axolotl-pm/pocketmine-mp": "5.51.1",
-        "phpstan/phpstan": "^2.2",
-        "sof3/pharynx": "^0.3.8",
-        "friendsofphp/php-cs-fixer": "^3.94.2"
+    "scripts": {
+        "analyze": "vendor/bin/phpstan analyse src --level=max",
+        "build": "php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=BedrockVoiceChat.phar",
+        "build-source": "php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -o=./output/"
     },
-    "license": "LGPL-2.1-only",
     "autoload": {
         "psr-4": {
-            "ReinfyTeam\\BedrockVoiceChat\\": "src/"
+            "ReinfyTeam\\BedrockVoiceChat\\": "src/ReinfyTeam/BedrockVoiceChat/"
         }
     },
-	"scripts": {
-        "format": "php-cs-fixer fix --config=.php-cs-fixer.php --allow-risky=yes",
-        "format:check": "php-cs-fixer fix --config=.php-cs-fixer.php --allow-risky=yes --dry-run --diff",
-        "analyze": "phpstan analyse --no-progress",
-        "build": [
-            "@php tools/prepare-build.php",
-            "@php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=./build/BedrockVoiceChat.phar",
-            "@php tools/verify-build.php"
-        ],
-        "build-source": [
-            "@php tools/prepare-build.php",
-            "@php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -o=./build/"
-        ]
-    },
-    "config": {
-        "platform": {
-            "php": "8.2.0"
-        }
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+    "require-dev": {
+        "axolotl-pm/pocketmine-mp": "5.51.1",
+        "sof3/pharynx": "^0.3.0",
+        "phpstan/phpstan": "^2.1",
+        "friendsofphp/php-cs-fixer": "^3.58"
+    }
 }
