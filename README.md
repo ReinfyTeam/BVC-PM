@@ -26,9 +26,9 @@
 | Component | Minimum Version | Notes |
 |---|---|---|
 | **PocketMine-MP** | `5.0.0` or higher | Full API 5 compatibility |
-| **PHP** | `8.2` or higher | Built with strict typing (`declare(strict_types=1)`) |
+| **PHP** | `8.2` or higher | Get from PHP-Builds on PMMP |
 | **BVC Desktop App** | Latest | Players need the BedrockVoiceChat desktop companion client |
-| **BVC Voice Server** | Latest | Self-hosted or hosted BVC voice proxy |
+| **BVC Voice Server** | Latest | Self-hosted or hosted BVC voice proxy with domain and certificate, see [BVC Documentation](https://www.bedrockvoicechat.com/wiki/server/installation/) for installation. |
 
 ---
 
