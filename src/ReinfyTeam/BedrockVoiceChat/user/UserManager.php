@@ -35,6 +35,7 @@ use pocketmine\player\Player;
 use pocketmine\Server;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceStateUpdateEvent;
 use ReinfyTeam\BedrockVoiceChat\http\HttpClient;
 use ReinfyTeam\BedrockVoiceChat\service\VoiceService;
 use function count;
@@ -254,6 +255,11 @@ final class UserManager {
 				$group = $state['current_group'] ?? null;
 				$user->setGroup(is_string($group) && $group !== '' ? $group : null);
 				$user->setLastSyncTime(time());
+
+				$onlinePlayer = $user->getPlayer();
+				if ($onlinePlayer !== null) {
+					(new PlayerVoiceStateUpdateEvent($onlinePlayer, $user))->call();
+				}
 
 				if ($callback !== null) {
 					$callback($user, true, "");

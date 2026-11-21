@@ -46,6 +46,8 @@ use function fclose;
 use function file_exists;
 use function is_array;
 use function is_dir;
+use function is_int;
+use function is_string;
 use function mkdir;
 use function rename;
 use function str_replace;

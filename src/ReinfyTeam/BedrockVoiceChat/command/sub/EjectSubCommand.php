@@ -37,6 +37,7 @@ use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
+use function is_int;
 
 /**
  * @property BVC $plugin

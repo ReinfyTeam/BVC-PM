@@ -42,6 +42,8 @@ use ReinfyTeam\BedrockVoiceChat\service\PositionService;
 use ReinfyTeam\BedrockVoiceChat\service\VoiceService;
 use ReinfyTeam\BedrockVoiceChat\user\UserManager;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
+use function is_int;
+use function is_string;
 use function max;
 use function rtrim;
 use function trim;

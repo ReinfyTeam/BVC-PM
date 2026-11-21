@@ -36,6 +36,10 @@ use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
 use ReinfyTeam\BedrockVoiceChat\service\VoiceService;
+use function intval;
+use function is_float;
+use function is_int;
+use function is_string;
 
 /**
  * Main in-game UI form opened by /bvc ui (uses jojoe77777 FormAPI).

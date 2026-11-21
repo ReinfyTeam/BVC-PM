@@ -35,6 +35,9 @@ use jojoe77777\FormAPI\CustomForm;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
+use function is_array;
+use function is_float;
+use function is_int;
 
 /**
  * Custom form for setting voice volume (uses jojoe77777 FormAPI).

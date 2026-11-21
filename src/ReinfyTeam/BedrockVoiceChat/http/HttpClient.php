@@ -32,11 +32,14 @@ declare(strict_types=1);
 namespace ReinfyTeam\BedrockVoiceChat\http;
 
 use pmmp\thread\ThreadSafeArray;
-use ReinfyTeam\BedrockVoiceChat\BVC;
-use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
 use pocketmine\scheduler\ClosureTask;
 use pocketmine\scheduler\Task;
 use pocketmine\scheduler\TaskHandler;
+use ReinfyTeam\BedrockVoiceChat\BVC;
+use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
+use function is_array;
+use function is_int;
+use function is_string;
 
 /**
  * Asynchronous HTTP client backed by a dedicated worker thread.

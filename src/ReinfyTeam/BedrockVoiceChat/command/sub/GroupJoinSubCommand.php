@@ -36,6 +36,7 @@ use CortexPE\Commando\BaseSubCommand;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
+use function is_string;
 use function trim;
 
 /**

@@ -33,14 +33,12 @@ namespace ReinfyTeam\BedrockVoiceChat\thread;
 
 use pmmp\thread\ThreadSafeArray;
 use pocketmine\thread\Thread;
-use ReinfyTeam\BedrockVoiceChat\http\HttpClient;
 use function curl_close;
 use function curl_error;
 use function curl_exec;
 use function curl_getinfo;
 use function curl_init;
 use function curl_setopt;
-use function curl_setopt_array;
 use function is_array;
 use function is_int;
 use function is_string;

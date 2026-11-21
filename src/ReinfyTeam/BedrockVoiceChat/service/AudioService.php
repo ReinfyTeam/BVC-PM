@@ -36,28 +36,35 @@ use pocketmine\item\Record;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
+use pocketmine\world\Position;
 use pocketmine\world\World;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
+use ReinfyTeam\BedrockVoiceChat\event\JukeboxEjectAudioDiscEvent;
+use ReinfyTeam\BedrockVoiceChat\event\JukeboxPlayAudioDiscEvent;
 use ReinfyTeam\BedrockVoiceChat\http\HttpClient;
 use ReinfyTeam\BedrockVoiceChat\model\AudioDisc;
 use ReinfyTeam\BedrockVoiceChat\util\PlayerInteractData;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
 use function array_keys;
 use function ceil;
+use function dirname;
 use function file_exists;
+use function file_get_contents;
 use function file_put_contents;
 use function filter_var;
 use function is_array;
+use function is_dir;
+use function is_float;
 use function is_int;
 use function is_string;
 use function json_decode;
 use function json_encode;
 use function max;
+use function mkdir;
 use function preg_match;
 use function rawurlencode;
 use function rtrim;
-use function str_contains;
 use function strlen;
 use function trim;
 
@@ -260,9 +267,15 @@ final class AudioService {
 		$key = Util::locationKey($world, (int) $position->x, (int) $position->y, (int) $position->z);
 		$currentRecord = $block->getRecord();
 
-		if ($currentRecord !== null && Util::getBvcAudioId($currentRecord) !== null) {
+		$audioId = $currentRecord !== null ? Util::getBvcAudioId($currentRecord) : null;
+		if ($audioId !== null) {
 			$data->event->cancel();
 			$state = $this->activeDiscs[$key] ?? null;
+			$event = new JukeboxEjectAudioDiscEvent($player, $block, $audioId, $block->getPosition());
+			$event->call();
+			if ($event->isCancelled()) {
+				return;
+			}
 			if ($state instanceof AudioDisc && $state->hasEvent()) {
 				$this->deleteAudioEvent($state->eventId);
 			}
@@ -282,6 +295,13 @@ final class AudioService {
 		}
 
 		$data->event->cancel();
+
+		$event = new JukeboxPlayAudioDiscEvent($player, $block, $audioId, $block->getPosition());
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$audioId = $event->getAudioId();
 		$block->insertRecord(clone $held);
 		$block->stopSound();
 		$world->setBlock($position, $block);
@@ -332,19 +352,24 @@ final class AudioService {
 		if (!($state instanceof AudioDisc)) {
 			return;
 		}
+		$world = $state->world;
+		$position = new Position($state->x, $state->y, $state->z, $world);
+		$block = $world->getBlock($position);
+		if ($block instanceof Jukebox && Util::getBvcAudioId($block->getRecord()) !== null) {
+			$event = new JukeboxEjectAudioDiscEvent(null, $block, $state->audioId, $position);
+			$event->call();
+			if ($event->isCancelled()) {
+				return;
+			}
+			$block->ejectRecord();
+			$world->setBlock($position, $block);
+			$this->plugin->getLogger()->info('Auto-ejected BVC disc ' . $state->audioId . ' from ' . $key);
+		}
 		if ($state->hasEvent()) {
 			$this->deleteAudioEvent($state->eventId);
 		}
 		unset($this->activeDiscs[$key]);
 		$this->persistDiscs();
-		$world = $state->world;
-		$position = new Vector3($state->x, $state->y, $state->z);
-		$block = $world->getBlock($position);
-		if ($block instanceof Jukebox && Util::getBvcAudioId($block->getRecord()) !== null) {
-			$block->ejectRecord();
-			$world->setBlock($position, $block);
-			$this->plugin->getLogger()->info('Auto-ejected BVC disc ' . $state->audioId . ' from ' . $key);
-		}
 	}
 
 	public function ejectAllDiscs() : void {
@@ -452,5 +477,4 @@ final class AudioService {
 			}
 		}
 	}
-
 }

@@ -35,6 +35,8 @@ use jojoe77777\FormAPI\CustomForm;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
+use function is_array;
+use function is_string;
 use function trim;
 
 /**

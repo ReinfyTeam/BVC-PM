@@ -35,17 +35,27 @@ use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
+use ReinfyTeam\BedrockVoiceChat\event\JukeboxMuteEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceDeafenEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceHearChangeEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceJoinGroupEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceLeaveGroupEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceMuteEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceRecordEvent;
+use ReinfyTeam\BedrockVoiceChat\event\PlayerVoiceVolumeChangeEvent;
 use ReinfyTeam\BedrockVoiceChat\http\HttpClient;
 use ReinfyTeam\BedrockVoiceChat\model\PlayerState;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
 use function filter_var;
 use function is_array;
+use function is_int;
 use function is_string;
 use function json_decode;
 use function json_encode;
 use function max;
 use function min;
 use function rawurlencode;
+use function round;
 use function rtrim;
 use function strcasecmp;
 use function time;
@@ -201,6 +211,13 @@ final class VoiceService {
 	}
 
 	public function toggleMute(Player $player, bool $value) : void {
+		$event = new PlayerVoiceMuteEvent($player, $value, $player);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isMuted();
+
 		$state = $this->getPlayerState($player);
 		$state->setMuted($value);
 		$this->plugin->userManager->getOrCreateUser($player)->setMuted($value);
@@ -208,6 +225,13 @@ final class VoiceService {
 	}
 
 	public function toggleMuteFor(CommandSender $sender, Player $target, bool $value) : void {
+		$event = new PlayerVoiceMuteEvent($target, $value, $sender);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isMuted();
+
 		$state = $this->getPlayerState($target);
 		$state->setMuted($value);
 		$this->plugin->userManager->getOrCreateUser($target)->setMuted($value);
@@ -223,6 +247,13 @@ final class VoiceService {
 	}
 
 	public function toggleDeafen(Player $player, bool $value) : void {
+		$event = new PlayerVoiceDeafenEvent($player, $value, $player);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isDeafened();
+
 		$state = $this->getPlayerState($player);
 		$state->setDeafened($value);
 		$this->plugin->userManager->getOrCreateUser($player)->setDeafened($value);
@@ -230,6 +261,13 @@ final class VoiceService {
 	}
 
 	public function toggleDeafenFor(CommandSender $sender, Player $target, bool $value) : void {
+		$event = new PlayerVoiceDeafenEvent($target, $value, $sender);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isDeafened();
+
 		$state = $this->getPlayerState($target);
 		$state->setDeafened($value);
 		$this->plugin->userManager->getOrCreateUser($target)->setDeafened($value);
@@ -245,6 +283,13 @@ final class VoiceService {
 	}
 
 	public function toggleRecording(Player $player, bool $value) : void {
+		$event = new PlayerVoiceRecordEvent($player, $value, $player);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isRecording();
+
 		$state = $this->getPlayerState($player);
 		$state->setRecording($value);
 		$this->plugin->userManager->getOrCreateUser($player)->setRecording($value);
@@ -252,6 +297,13 @@ final class VoiceService {
 	}
 
 	public function toggleRecordingFor(CommandSender $sender, Player $target, bool $value) : void {
+		$event = new PlayerVoiceRecordEvent($target, $value, $sender);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isRecording();
+
 		$state = $this->getPlayerState($target);
 		$state->setRecording($value);
 		$this->plugin->userManager->getOrCreateUser($target)->setRecording($value);
@@ -273,12 +325,28 @@ final class VoiceService {
 			return;
 		}
 		$level = max(0, min(150, $level));
+		$oldVolume = (int) round($this->plugin->userManager->getOrCreateUser($player)->getVolume() * 100);
+		$event = new PlayerVoiceVolumeChangeEvent($player, $target, $oldVolume, $level, $player);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$level = max(0, min(150, $event->getNewVolume()));
+
 		$this->sendControl($player, ['SetVolume' => ['target' => $target, 'volume' => $level / 100]],
 			'volume_set', ['level' => (string) $level, 'target' => $target]);
 	}
 
 	public function setVolumeFor(CommandSender $sender, Player $target, int $level) : void {
 		$level = max(0, min(150, $level));
+		$oldVolume = (int) round($this->plugin->userManager->getOrCreateUser($target)->getVolume() * 100);
+		$event = new PlayerVoiceVolumeChangeEvent($target, $target, $oldVolume, $level, $sender);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$level = max(0, min(150, $event->getNewVolume()));
+
 		if ($sender instanceof Player && $sender->getUniqueId()->equals($target->getUniqueId())) {
 			$this->sendControl($target, ['SetVolume' => ['target' => $target->getName(), 'volume' => $level / 100]],
 				'volume_set', ['level' => (string) $level, 'target' => $target->getName()]);
@@ -298,6 +366,13 @@ final class VoiceService {
 			$player->sendMessage($this->config->message('player_not_found', ['name' => $targetName]));
 			return;
 		}
+		$event = new PlayerVoiceHearChangeEvent($player, $target, $value);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isHeard();
+
 		$state = $this->getPlayerState($player);
 		$state->setHearingOthers($value);
 		$this->sendControl($player, ['SetHeard' => ['target' => $target, 'muted' => !$value]],
@@ -305,6 +380,13 @@ final class VoiceService {
 	}
 
 	public function toggleHearingAll(Player $player, bool $value) : void {
+		$event = new PlayerVoiceHearChangeEvent($player, '#all', $value);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$value = $event->isHeard();
+
 		$state = $this->getPlayerState($player);
 		$state->setHearingOthers($value);
 		$this->sendControl($player, ['SetHeard' => ['target' => '#all', 'muted' => !$value]],
@@ -315,6 +397,13 @@ final class VoiceService {
 		if (!$this->requireBackend($sender)) {
 			return;
 		}
+		$event = new JukeboxMuteEvent($sender, $muted);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$muted = $event->isMuted();
+
 		$id = $sender instanceof Player ? $sender->getName() : '#console';
 		$this->sendControlFor($sender, $id, ['SetHeard' => ['target' => '#jukebox', 'muted' => $muted]],
 			'jukebox_mute_toggled', ['state' => $muted ? 'enabled' : 'disabled']);
@@ -335,10 +424,22 @@ final class VoiceService {
 	}
 
 	public function joinGroup(Player $player, string $shareCode) : void {
+		$event = new PlayerVoiceJoinGroupEvent($player, $shareCode);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
+		$shareCode = $event->getGroup();
 		$this->sendControl($player, ['JoinGroup' => ['channel' => $shareCode]], 'group_join_sent');
 	}
 
 	public function leaveGroup(Player $player) : void {
+		$group = $this->plugin->userManager->getUser($player)?->getGroup();
+		$event = new PlayerVoiceLeaveGroupEvent($player, $group);
+		$event->call();
+		if ($event->isCancelled()) {
+			return;
+		}
 		$this->sendControl($player, 'LeaveGroup', 'group_leave_sent');
 	}
 
