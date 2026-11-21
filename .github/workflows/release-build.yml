@@ -1,0 +1,72 @@
+name: Publish plugin release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (example: 1.2.3 or v1.2.3)"
+        required: true
+        type: string
+      changelog:
+        description: "Release notes/changelog"
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  release:
+    name: Publish plugin release
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.head_commit.message, 'release:') ||
+      startsWith(github.event.head_commit.message, 'release ') ||
+      startsWith(github.event.head_commit.message, 'Release:') ||
+      startsWith(github.event.head_commit.message, 'Release ')
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+
+      - name: Download verified build artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in {1..30}; do
+            build_run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-phar.yml/runs?head_sha=${GITHUB_SHA}&status=success&per_page=20" --jq "[.workflow_runs[] | select(.head_sha == \"${GITHUB_SHA}\" and .conclusion == \"success\") | .id][0]")"
+            if [ "${build_run_id}" != "null" ] && [ -n "${build_run_id}" ]; then
+              gh run download "${build_run_id}" --repo "${GITHUB_REPOSITORY}" --name Zuri --dir build
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "A successful Build and validate Zuri plugin run was not found for ${GITHUB_SHA}." >&2
+          exit 1
+
+      - name: Resolve release metadata (from commit or manual input)
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RAW_MESSAGE: ${{ github.event.head_commit.message }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CHANGELOG: ${{ inputs.changelog }}
+          SHA: ${{ github.sha }}
+        run: php tools/release-metadata.php
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
+          body_path: release-notes.md
+          target_commitish: ${{ steps.meta.outputs.target }}
+          files: build/Zuri.phar
+          fail_on_unmatched_files: true
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          make_latest: ${{ steps.meta.outputs.make_latest }}

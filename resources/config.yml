@@ -1,0 +1,64 @@
+# Configuration version. Used by the automatic migration system. Do not modify manually.
+version: 1
+
+# Messages configuration file located in plugin_data/BVC/
+messages_file: "messages.yml"
+
+# Enable verbose debug logging to console via PocketMine's logger.
+debug: false
+
+# BVC backend base URL. Do not include a trailing slash.
+server_url: "https://YOUR-BVC-SERVER"
+
+# Bearer token issued by your BVC server.
+access_token: "CHANGE_ME"
+
+# Stable ID for this PMMP server instance. Generated automatically on first start.
+world_uuid: ""
+
+# Display name shown by the BVC desktop app. Empty uses world_uuid.
+world_name: ""
+
+# Position updates are sent every N ticks (5 ticks = 250 ms).
+poll_interval_ticks: 5
+minimum_players: 1
+
+# HTTP request timeout in seconds. Requests run asynchronously in a dedicated worker thread.
+http_timeout_seconds: 8
+
+# Convert PMMP world folder names to BVC dimension names.
+# Add entries for custom worlds where necessary.
+dimension_map:
+  world: "overworld"
+  nether: "nether"
+  the_end: "the_end"
+
+# When a BVC disc finishes, PMMP ejects it from its jukebox.
+auto_eject_discs: true
+
+# Customizable permissions. Keys are internal plugin identifiers,
+# values are the actual permission names registered on the server.
+permissions:
+  bvc: "bvc.use"
+  bvc.admin: "bvc.admin"
+  bvc.ui: "bvc.ui"
+  bvc.mute: "bvc.mute"
+  bvc.deafen: "bvc.deafen"
+  bvc.record: "bvc.record"
+  bvc.volume: "bvc.volume"
+  bvc.hear: "bvc.hear"
+  bvc.disc: "bvc.disc"
+  bvc.group: "bvc.group"
+  bvc.status: "bvc.status"
+  bvc.eject: "bvc.eject"
+  bvc.query: "bvc.query"
+  bvc.pref: "bvc.pref"
+
+# Performance tuning for large servers (100+ players).
+performance:
+  # How many player position rows to include in a single backend update batch.
+  position_batch_size: 50
+  # Enable/disable periodic position polling.
+  enable_position_polling: true
+  # How many ticks between position update polls.
+  poll_interval_ticks: 5

@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ReinfyTeam\BedrockVoiceChat\command\sub;
+
+use CortexPE\Commando\args\IntegerArgument;
+use CortexPE\Commando\BaseSubCommand;
+use pocketmine\command\CommandSender;
+use pocketmine\player\Player;
+use ReinfyTeam\BedrockVoiceChat\BVC;
+use ReinfyTeam\BedrockVoiceChat\util\Util;
+
+/**
+ * @property BVC $plugin
+ */
+final class EjectSubCommand extends BaseSubCommand{
+
+    public function __construct(BVC $plugin){
+        parent::__construct($plugin, 'eject', 'Eject a BVC disc at coordinates');
+    }
+
+    protected function prepare(): void{
+        $this->setPermission($this->plugin->config->getPermission('bvc.eject', 'bvc.eject'));
+        $this->setPermissionMessage($this->plugin->config->message('no_permission'));
+        $this->registerArgument(0, new IntegerArgument('x'));
+        $this->registerArgument(1, new IntegerArgument('y'));
+        $this->registerArgument(2, new IntegerArgument('z'));
+    }
+
+    public function onRun(CommandSender $sender, string $aliasUsed, array $args): void{
+        if(!Util::isAdmin($sender, $this->plugin) && !$sender->hasPermission($this->plugin->config->getPermission('bvc.eject', 'bvc.eject'))){
+            $sender->sendMessage($this->plugin->config->message('no_permission'));
+            return;
+        }
+        $x = $args['x'] ?? null;
+        $y = $args['y'] ?? null;
+        $z = $args['z'] ?? null;
+        if($x === null || $y === null || $z === null){
+            $sender->sendMessage($this->plugin->config->message('eject_usage'));
+            return;
+        }
+        $world = $sender instanceof Player ? $sender->getWorld() : $this->plugin->getServer()->getWorldManager()->getDefaultWorld();
+        if($world === null){
+            $sender->sendMessage($this->plugin->config->message('world_not_found'));
+            return;
+        }
+        $this->plugin->audioService->forceEjectAt($world, (int) $x, (int) $y, (int) $z);
+        $sender->sendMessage($this->plugin->config->message('eject_done', [
+            'location' => $x . ', ' . $y . ', ' . $z
+        ]));
+    }
+}

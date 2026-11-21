@@ -1,0 +1,135 @@
+# Messages configuration version. Used by the automatic migration system. Do not modify manually.
+version: 1
+
+# BVC customizable messages.
+# Placeholders like {player} are replaced at runtime.
+
+prefix: "§6[BVC] §7"
+
+not_configured: "§cBackend is not configured. Edit plugin_data/BVC/config.yml and restart."
+no_permission: "§cYou do not have permission to use this command."
+unknown_command: "§cUnknown BVC subcommand. Use /bvc help."
+only_self_allowed: "§cYou can only manage your own settings and preferences."
+
+# Backend state
+backend_not_configured: "§cBVC backend is not configured."
+backend_restored: "§aBVC backend connection restored."
+backend_unreachable: "§cBVC backend is unreachable; position updates are temporarily paused."
+
+# Control responses
+request_forwarded: "§aRequest forwarded to your desktop voice client."
+no_active_session: "§cNo active desktop voice session. Open the BVC app first."
+control_success: "§a{message}"
+control_failed: "§cControl request failed ({detail}).."
+control_encode_error: "§cCould not encode the control request."
+
+# Group
+group_created: "§aGroup created. Share code: §f{code}"
+group_join_sent: "§aGroup join request sent."
+group_leave_sent: "§aGroup leave request sent."
+group_create_sent: "§aGroup creation request sent."
+groups_title: "§6[BVC] Available groups:"
+groups_none: "§e[BVC] No groups are currently available."
+group_line: "§e{name} §7({id}){protected}"
+group_join_usage: "§cUsage: /bvc groupjoin <share-code>"
+
+# Voice status
+voice_status_title: "§6[BVC] Voice status"
+voice_status_title_other: "§6[BVC] Voice status for {target}"
+status_muted: "§eMuted: §f{value}"
+status_deafened: "§eDeafened: §f{value}"
+status_recording: "§eRecording: §f{value}"
+status_group: "§eGroup: §f{value}"
+
+# Muting / deafening / recording
+mute_toggled: "§aMicrophone {state}."
+deafen_toggled: "§aDeafen {state}."
+record_toggled: "§aRecording {state}."
+other_player_mute_toggled: "§aMicrophone {state} for {target}."
+other_player_deafen_toggled: "§aDeafen {state} for {target}."
+other_player_record_toggled: "§aRecording {state} for {target}."
+
+# Volume
+volume_set: "§aVolume set to {level}% for {target}."
+other_player_volume_set: "§aVolume set to {level}% for {target}."
+jukebox_volume_set: "§aJukebox volume set to {level}%."
+volume_invalid: "§cVolume must be between 0 and 150."
+volume_usage: "§cUsage: /bvc volume [player] <0-150>"
+
+# Jukebox
+jukebox_mute_toggled: "§aJukebox mute {state}."
+jukebox_mute_usage: "§cUsage: /bvc jukeboxmute <on|off>"
+jukebox_volume_usage: "§cUsage: /bvc jukeboxvolume <0-150>"
+
+# Preference
+pref_usage: "§cUsage: /bvc pref [player] <volume 0-150> <heard on|off>"
+
+# Hearing
+hear_toggled: "§aYou {state} hear {target}."
+hear_usage: "§cUsage: /bvc hear <on|off> OR /bvc hear <player> <on|off>"
+
+# Player / World errors
+player_not_found: "§cUnknown online player: {name}"
+player_must_be_ingame: "§cThis command must be used by a player."
+world_not_found: "§cWorld could not be found."
+
+# Disc
+disc_created: "§aCreated audio disc: §f{audioId}§a. Insert it into a jukebox."
+disc_created_other: "§aCreated and gave BVC disc to {target}."
+disc_invalid: "§cAudio ID must be 1-128 characters and cannot contain line breaks."
+disc_inserted: "§aDisc inserted. Requesting audio playback..."
+disc_ejected: "§aEjected BVC disc."
+disc_no_item: "§cThis PMMP build does not expose the music_disc_5 record item."
+disc_usage: "§cUsage: /bvc disc <audio_id> [player]"
+
+# Eject
+eject_usage: "§cUsage: /bvc eject <x> <y> <z>"
+eject_done: "§aEjected BVC disc at {location}."
+eject_not_found: "§cNo BVC disc found at {location}."
+
+# Position
+audio_failed: "§cAudio play request failed (HTTP {status}): {error}"
+audio_invalid_response: "§cBVC audio response did not include event_id and duration_ms."
+
+# Boolean
+boolean_usage: "§cUsage: /bvc {sub} <on|off> [player]"
+
+# Help
+help_title: "§6BVC commands"
+help_hint: "§e/bvc help §7- Show available subcommands"
+command_usage_hint: "§e/bvc help §7- Show available subcommands"
+help_mute: "§e/bvc mute <on|off> [player] §7- Mute/unmute microphone"
+help_deafen: "§e/bvc deafen <on|off> [player] §7- Deafen/undeafen"
+help_record: "§e/bvc record <on|off> [player] §7- Start/stop recording"
+help_volume: "§e/bvc volume [player] <0-150> §7- Set voice volume"
+help_hear: "§e/bvc hear [player] <on|off> §7- Toggle hearing voice audio"
+help_jukeboxmute: "§e/bvc jukeboxmute <on|off> §7- Toggle jukebox audio"
+help_jukeboxvolume: "§e/bvc jukeboxvolume <0-150> §7- Set jukebox volume"
+help_group: "§e/bvc groupcreate|groupjoin <code>|groupleave|groups §7- Group management"
+help_status: "§e/bvc status [player] §7- Show voice status"
+help_disc: "§e/bvc disc <audio_id> [player] §7- Create a BVC music disc"
+help_eject: "§e/bvc eject <x> <y> <z> §7- Eject a BVC disc at coordinates"
+help_query: "§e/bvc query [player] §7- Query voice state from backend"
+help_pref: "§e/bvc pref [player] <volume 0-150> <heard on|off> §7- Set voice preferences"
+help_ui: "§e/bvc ui §7- Open the in-game voice settings UI"
+help_footer: "§7Insert a BVC disc into a vanilla jukebox to start playback."
+
+# UI
+ui_title: "BVC Voice Controls"
+ui_content: "Manage your Bedrock Voice Chat settings below."
+ui_btn_microphone: "Microphone"
+ui_btn_deafen: "Deafen"
+ui_btn_recording: "Recording"
+ui_btn_volume: "Volume"
+ui_btn_hearing: "Hearing"
+ui_btn_groups: "Groups"
+ui_btn_status: "Status"
+ui_btn_disc: "Create Disc"
+ui_btn_close: "Close"
+ui_volume_title: "Volume Setting"
+ui_volume_content: "Set your voice volume (0 - 150)."
+ui_volume_slider: "Volume (0 - 150)"
+ui_disc_title: "Create Audio Disc"
+ui_disc_content: "Enter the audio ID for your BVC disc."
+ui_disc_audio_id: "Audio ID"
+ui_disc_placeholder: "audio_id_here"
