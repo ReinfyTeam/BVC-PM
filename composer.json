@@ -15,7 +15,8 @@
         }
     ],
     "scripts": {
-        "analyze": "vendor/bin/phpstan analyse src --level=max"
+        "analyze": "vendor/bin/phpstan analyse src --level=max",
+        "format:check": "vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --using-cache=no"
     },
     "autoload": {
         "psr-4": {
