@@ -1,0 +1,9 @@
+[submodule "virions/Commando"]
+	path = virions/Commando
+	url = https://github.com/Paroxity/Commando.git
+[submodule "virions/PacketHandler"]
+	path = virions/PacketHandler
+	url = https://github.com/Muqsit/SimplePacketHandler.git
+[submodule "virions/libFormAPI"]
+	path = virions/libFormAPI
+	url = https://github.com/AxolotlBucketLabs/FormAPI.git

@@ -1,0 +1,151 @@
+diff --git a/src/muqsit/simplepackethandler/interceptor/PacketInterceptorListener.php b/src/muqsit/simplepackethandler/interceptor/PacketInterceptorListener.php
+index 97546cb..198946b 100644
+--- a/src/muqsit/simplepackethandler/interceptor/PacketInterceptorListener.php
++++ b/src/muqsit/simplepackethandler/interceptor/PacketInterceptorListener.php
+@@ -84,7 +84,7 @@ final class PacketInterceptorListener implements IPacketInterceptor{
+ 		$this->incoming_event_handler ??= Server::getInstance()->getPluginManager()->registerEvent(DataPacketReceiveEvent::class, function(DataPacketReceiveEvent $event) : void{
+ 			/** @var DataPacket&ServerboundPacket $packet */
+ 			$packet = $event->getPacket();
+-			if(isset($this->incoming_handlers[$pid = $packet::NETWORK_ID])){
++			if(isset($this->incoming_handlers[$pid = $packet->pid()])){
+ 				$origin = $event->getOrigin();
+ 				foreach($this->incoming_handlers[$pid] as $handler){
+ 					if(!$handler($packet, $origin)){
+@@ -108,7 +108,7 @@ final class PacketInterceptorListener implements IPacketInterceptor{
+ 
+ 			/** @var DataPacket&ClientboundPacket $packet */
+ 			foreach($packets as $packet){
+-				if(isset($this->outgoing_handlers[$pid = $packet::NETWORK_ID])){
++				if(isset($this->outgoing_handlers[$pid = $packet->pid()])){
+ 					$remaining_targets = $original_targets;
+ 
+ 					foreach($remaining_targets as $i => $target){
+@@ -178,4 +178,4 @@ final class PacketInterceptorListener implements IPacketInterceptor{
+ 		$this->onStateChange();
+ 		return $this;
+ 	}
+-}
+\ No newline at end of file
++}
+diff --git a/src/muqsit/simplepackethandler/monitor/PacketMonitorListener.php b/src/muqsit/simplepackethandler/monitor/PacketMonitorListener.php
+index 4dd72a5..cef8ff8 100644
+--- a/src/muqsit/simplepackethandler/monitor/PacketMonitorListener.php
++++ b/src/muqsit/simplepackethandler/monitor/PacketMonitorListener.php
+@@ -79,7 +79,7 @@ final class PacketMonitorListener implements IPacketMonitor{
+ 		$this->incoming_event_handler ??= Server::getInstance()->getPluginManager()->registerEvent(DataPacketReceiveEvent::class, function(DataPacketReceiveEvent $event) : void{
+ 			/** @var DataPacket&ServerboundPacket $packet */
+ 			$packet = $event->getPacket();
+-			if(isset($this->incoming_handlers[$pid = $packet::NETWORK_ID])){
++			if(isset($this->incoming_handlers[$pid = $packet->pid()])){
+ 				$origin = $event->getOrigin();
+ 				foreach($this->incoming_handlers[$pid] as $handler){
+ 					$handler($packet, $origin);
+@@ -97,7 +97,7 @@ final class PacketMonitorListener implements IPacketMonitor{
+ 		$this->outgoing_event_handler ??= Server::getInstance()->getPluginManager()->registerEvent(DataPacketSendEvent::class, function(DataPacketSendEvent $event) : void{
+ 			/** @var DataPacket&ClientboundPacket $packet */
+ 			foreach($event->getPackets() as $packet){
+-				if(isset($this->outgoing_handlers[$pid = $packet::NETWORK_ID])){
++				if(isset($this->outgoing_handlers[$pid = $packet->pid()])){
+ 					foreach($event->getTargets() as $target){
+ 						foreach($this->outgoing_handlers[$pid] as $handler){
+ 							$handler($packet, $target);
+@@ -145,4 +145,4 @@ final class PacketMonitorListener implements IPacketMonitor{
+ 		$this->onStateChange();
+ 		return $this;
+ 	}
+-}
+\ No newline at end of file
++}
+diff --git a/src/muqsit/simplepackethandler/utils/Utils.php b/src/muqsit/simplepackethandler/utils/Utils.php
+index ac2cd5d..e47e4d0 100644
+--- a/src/muqsit/simplepackethandler/utils/Utils.php
++++ b/src/muqsit/simplepackethandler/utils/Utils.php
+@@ -12,17 +12,24 @@ use pocketmine\utils\Utils as PocketMineUtils;
+ use ReflectionFunction;
+ use ReflectionIntersectionType;
+ use ReflectionNamedType;
+-use ReflectionProperty;
+ use ReflectionType;
+ use ReflectionUnionType;
+ use function assert;
++use function class_implements;
++use function class_parents;
+ use function count;
++use function get_class;
+ use function implode;
+ use function in_array;
+-use function is_a;
+-use function is_int;
+ 
+ final class Utils{
++	private static function isTypeCompatible(string $class, string $expected) : bool{
++		if($class === $expected){
++			return true;
++		}
++		return in_array($expected, class_parents($class) ?: [], true)
++			|| in_array($expected, class_implements($class) ?: [], true);
++	}
+ 
+ 	/**
+ 	 * Parses a closure and validates it against $params and $return_type. Returns a type group list for
+@@ -55,7 +62,7 @@ final class Utils{
+ 			$names = self::groupTypes($parameter_type);
+ 			foreach($names as $group){
+ 				foreach($group as $name){
+-					is_a($name, $parameter_compare, true) || throw new InvalidArgumentException("Parameter {$name} in " . PocketMineUtils::getNiceClosureName($closure) . " does not satisfy type {$parameter_compare}");
++					self::isTypeCompatible($name, $parameter_compare) || throw new InvalidArgumentException("Parameter {$name} in " . PocketMineUtils::getNiceClosureName($closure) . " does not satisfy type {$parameter_compare}");
+ 				}
+ 			}
+ 			$parsed_params[] = $names;
+@@ -94,7 +101,7 @@ final class Utils{
+ 					$stack[] = [$child, $index];
+ 				}
+ 			}else{
+-				throw new InvalidArgumentException("Don't know how to resolve " . $type . "(" . $type::class . ")");
++				throw new InvalidArgumentException("Don't know how to resolve " . $type . "(" . get_class($type) . ")");
+ 			}
+ 		}
+ 		/** @var non-empty-list<non-empty-list<string>> $result */
+@@ -111,22 +118,28 @@ final class Utils{
+ 		foreach($groups as $group){
+ 			if(count($group) === 1){ // perform the frequent case first
+ 				// union and non-composite types can be derived directly
+-				$packet = $group[0];
+-				assert(is_a($packet, DataPacket::class, true));
+-				assert(is_int($packet::NETWORK_ID));
+-				$network_ids[] = $packet::NETWORK_ID;
++				$packet_class = $group[0];
++				assert(self::isTypeCompatible($packet_class, DataPacket::class));
++				$matched_ids = 0;
++				foreach($pool->getAll() as $pid => $packet){
++					if(self::isTypeCompatible(get_class($packet), $packet_class)){
++						$network_ids[] = $pid;
++						$matched_ids++;
++					}
++				}
++				$matched_ids > 0 || throw new InvalidArgumentException("No packets match criteria " . implode("&", $group));
+ 			}else{
+ 				// intersection types (A&B) are more complex - they require a pool lookup
+-				static $packets = null;
+-				$packets ??= (new ReflectionProperty($pool, "pool"))->getValue($pool);
++				$packets = $pool->getAll();
+ 				$found = 0;
+ 				/**
+ 				 * @var int $pid
+ 				 * @var DataPacket $packet
+ 				 */
+ 				foreach($packets as $pid => $packet){
++					$packet_class = get_class($packet);
+ 					foreach($group as $validate){
+-						if(!is_a($validate, $packet::class, true)){
++						if(!self::isTypeCompatible($packet_class, $validate)){
+ 							continue 2;
+ 						}
+ 					}
+@@ -142,4 +155,4 @@ final class Utils{
+ 		/** @var non-empty-list<int> $network_ids */
+ 		return $network_ids;
+ 	}
+-}
+\ No newline at end of file
++}
