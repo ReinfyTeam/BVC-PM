@@ -206,8 +206,8 @@ final class BVC extends PluginBase {
 			$this->audioService->tick();
 		}), 1);
 
-		$this->getLogger()->info('BVC PMMP bridge enabled (API 5.0.0). World UUID: ' . $worldUuid);
-		if (!$this->voiceService->isConfigured()) {
+		$this->getLogger()->debug('BVC PMMP bridge enabled on world UUID: ' . $worldUuid);
+		if (!$this->isConfigured()) {
 			$this->getLogger()->warning('Set server_url and access_token in plugin_data/BVC/config.yml. BVC HTTP features are inactive.');
 		}
 	}
