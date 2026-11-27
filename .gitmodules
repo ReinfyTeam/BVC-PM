@@ -9,4 +9,4 @@
 	url = https://github.com/AxolotlBucketLabs/FormAPI.git
 [submodule "virions/libpmcurl"]
 	path = virions/libpmcurl
-	url = https://github.com/ReinfyTeam/libpmcurl.git
+	url = https://github.com/ReinfyTeam/libpmcurl
