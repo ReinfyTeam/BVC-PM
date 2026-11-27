@@ -5,3 +5,5 @@ virions:
     version: 0.1.10
   - name: libFormAPI
     version: 3.0.0
+  - name: libpmcurl
+    version: 1.0.0

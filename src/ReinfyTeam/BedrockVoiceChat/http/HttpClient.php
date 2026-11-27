@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -31,67 +28,30 @@ declare(strict_types=1);
 
 namespace ReinfyTeam\BedrockVoiceChat\http;
 
-use pmmp\thread\ThreadSafeArray;
-use pocketmine\scheduler\ClosureTask;
-use pocketmine\scheduler\Task;
-use pocketmine\scheduler\TaskHandler;
+use gameparrot\libpmcurl\Curl;
+use pocketmine\utils\InternetRequestResult;
 use ReinfyTeam\BedrockVoiceChat\BVC;
-use ReinfyTeam\BedrockVoiceChat\thread\HttpWorkerThread;
-use function is_array;
-use function is_int;
-use function is_string;
 
 /**
- * Asynchronous HTTP client backed by a dedicated worker thread.
+ * Asynchronous HTTP client backed by libpmcurl (curl_multi).
  *
- * Every request is dispatched to HttpWorkerThread (a dedicated background
- * thread). Completion callbacks run on the main thread via a polling task,
- * so they are free to use the PocketMine API. This never blocks the server's
- * main thread and can handle 100+ players without stalling.
+ * Every request is dispatched through libpmcurl's dedicated background thread
+ * using curl_multi, so multiple requests run in parallel with keep-alive
+ * connections. Completion callbacks run on the main thread via PocketMine's
+ * tick sleeper, so they are free to use the PocketMine API. This never blocks
+ * the server's main thread.
  */
 final class HttpClient {
-	/** @var array<int, callable(int, string, string): void> */
-	private static array $pendingCallbacks = [];
-	private static int $nextSeq = 0;
-
 	private BVC $plugin;
-	private ThreadSafeArray $toThread;
-	private ThreadSafeArray $fromThread;
-	private ?HttpWorkerThread $worker = null;
-	/** @var TaskHandler<ClosureTask>|null */
-	private $poller = null;
+
+	/** @var array<int, callable(int, string, string): void> */
+	private array $pendingCallbacks = [];
+
+	private int $nextSeq = 0;
 
 	public function __construct(BVC $plugin) {
 		$this->plugin = $plugin;
-	}
-
-	public function start() : void {
-		$this->toThread = new ThreadSafeArray();
-		$this->fromThread = new ThreadSafeArray();
-
-		$this->worker = new HttpWorkerThread($this->toThread, $this->fromThread);
-		$this->worker->start();
-
-		// Poll results back on the main thread every tick
-		$this->poller = $this->plugin->getScheduler()->scheduleRepeatingTask(
-			new \pocketmine\scheduler\ClosureTask(function() : void {
-				$this->pollResults();
-			}),
-			1
-		);
-	}
-
-	public function stop() : void {
-		if ($this->poller !== null) {
-			$this->poller->cancel();
-			$this->poller = null;
-		}
-		if ($this->worker !== null) {
-			$this->worker->stop();
-			$this->worker->quit();
-			$this->worker = null;
-		}
-		self::$pendingCallbacks = [];
+		Curl::getInstance(); // Initialize the libpmcurl singleton / background thread
 	}
 
 	/**
@@ -99,59 +59,70 @@ final class HttpClient {
 	 * @param callable(int, string, string): void $callback receives HTTP status, body and cURL error
 	 */
 	public function request(string $method, string $url, array $headers, ?string $body, callable $callback, int $timeout = 5) : void {
-		$seq = ++self::$nextSeq;
-		self::$pendingCallbacks[$seq] = $callback;
+		$seq = ++$this->nextSeq;
+		$this->pendingCallbacks[$seq] = $callback;
 
-		$this->plugin->debug("[HttpClient] Dispatched request #{$seq}: {$method} {$url} (timeout: {$timeout}s)");
+		$this->plugin->debug("debug_http_dispatched", ['seq' => (string) $seq, 'method' => $method, 'url' => $url, 'timeout' => (string) $timeout]);
 
-		$request = ThreadSafeArray::fromArray([
-			'seq' => $seq,
-			'method' => $method,
-			'url' => $url,
-			'headers' => ThreadSafeArray::fromArray($headers),
-			'body' => $body,
-			'timeout' => $timeout,
-		]);
-
-		$this->toThread->synchronized(function() use ($request) : void {
-			$this->toThread[] = $request;
-			$this->toThread->notify();
-		});
+		if ($method === 'GET' || $method === 'HEAD') {
+			Curl::getInstance()->getRequest($url, function(?InternetRequestResult $result, ?string $error) use ($seq) : void {
+				$this->handleResponse($seq, $result, $error);
+			}, $headers, $timeout);
+		} else {
+			// POST, PUT, PATCH, DELETE, and any other method
+			Curl::getInstance()->postRequest($url, function(?InternetRequestResult $result, ?string $error) use ($seq) : void {
+				$this->handleResponse($seq, $result, $error);
+			}, $headers, $body ?? '', $timeout);
+		}
 	}
 
-	private function pollResults() : void {
-		while (true) {
-			$result = $this->fromThread->synchronized(function() : mixed {
-				return $this->fromThread->shift();
-			});
-			if ($result === null) {
-				break;
-			}
-			if (!($result instanceof ThreadSafeArray) && !is_array($result)) {
-				continue;
-			}
-			$seqValue = $result['seq'] ?? 0;
-			$seq = is_int($seqValue) ? $seqValue : 0;
-			$callback = self::$pendingCallbacks[$seq] ?? null;
-			unset(self::$pendingCallbacks[$seq]);
-			if ($callback !== null) {
-				$statusValue = $result['httpCode'] ?? 0;
-				$status = is_int($statusValue) ? $statusValue : 0;
-				$errorValue = $result['error'] ?? '';
-				$error = is_string($errorValue) ? $errorValue : '';
-				$bodyValue = $result['body'] ?? '';
-				$body = is_string($bodyValue) ? $bodyValue : '';
-				$this->plugin->debug("[HttpClient] Finished request #{$seq}: status={$status}" . ($error !== '' ? " error={$error}" : ""));
-				try {
-					($callback)(
-						$status,
-						$body,
-						$error
-					);
-				} catch(\Throwable $e) {
-					$this->plugin->getLogger()->error('BVC HTTP callback failed: ' . $e->getMessage());
-				}
-			}
+	/**
+	 * @param array<string, string> $headers
+	 * @param callable(int, string, string): void $callback
+	 */
+	public function get(string $url, array $headers, callable $callback, int $timeout = 5) : void {
+		$this->request('GET', $url, $headers, null, $callback, $timeout);
+	}
+
+	/**
+	 * @param array<string, string> $headers
+	 * @param callable(int, string, string): void $callback
+	 */
+	public function post(string $url, array $headers, ?string $body, callable $callback, int $timeout = 5) : void {
+		$this->request('POST', $url, $headers, $body, $callback, $timeout);
+	}
+
+	/**
+	 * @param array<string, string> $headers
+	 * @param callable(int, string, string): void $callback
+	 */
+	public function delete(string $url, array $headers, callable $callback, int $timeout = 5) : void {
+		$this->request('DELETE', $url, $headers, null, $callback, $timeout);
+	}
+
+	/**
+	 * Handle a completed libpmcurl response and invoke the stored callback.
+	 */
+	private function handleResponse(int $seq, ?InternetRequestResult $result, ?string $error) : void {
+		$callback = $this->pendingCallbacks[$seq] ?? null;
+		unset($this->pendingCallbacks[$seq]);
+
+		if ($callback === null) {
+			return;
 		}
+
+		if ($result === null) {
+			// Network error
+			$callback(0, '', $error ?? 'Unknown error');
+			return;
+		}
+
+		$status = $result->getCode();
+		$body = $result->getBody();
+		$callback($status, $body, '');
+	}
+
+	public function stop() : void {
+		$this->pendingCallbacks = [];
 	}
 }

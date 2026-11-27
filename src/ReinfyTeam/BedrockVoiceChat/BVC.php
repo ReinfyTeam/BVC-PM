@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -51,9 +48,10 @@ use function trim;
 /**
  * Main plugin class for BedrockVoiceChat.
  *
- * Fully asynchronous: all HTTP requests run on a dedicated background worker
- * thread (HttpWorkerThread), never blocking the server's main thread.
- * Designed to handle 100+ players with batched position updates.
+ * Fully asynchronous: all HTTP requests run on a dedicated background thread
+ * via libpmcurl (curl_multi), never blocking the server's main thread.
+ * Audio disc events are driven by jukebox interact/block-break events rather
+ * than a per-tick scan.
  *
  * @property-read ConfigManager $config
  * @property-read HttpClient $http
@@ -73,7 +71,6 @@ final class BVC extends PluginBase {
 	private UserManager $userManager;
 
 	private ?BVCCommand $command = null;
-	private bool $httpStarted = false;
 
 	public static function getInstance() : self {
 		if (self::$instance === null) {
@@ -134,34 +131,29 @@ final class BVC extends PluginBase {
 	}
 
 	/**
-	 * Log a debug message using PocketMine's logger.
-	 * When `debug: true` is set in config.yml, it logs with [DEBUG] tag.
+	 * Log a debug message using a key from messages.yml.
+	 * All debug messages are universally prefixed with the `prefix` key from messages.yml.
+	 * When `debug: true` is set in config.yml, it logs with the prefix at info level.
+	 *
+	 * @param array<string, string> $placeholders
 	 */
-	public function debug(string $message) : void {
-		if (isset($this->config) && (bool) $this->config->get('debug', false)) {
-			$this->getLogger()->info("§7[DEBUG] " . $message);
-		} else {
-			$this->getLogger()->debug($message);
-		}
+	public function debug(string $key, array $placeholders = []) : void {
+		$message = $this->config->message($key, $placeholders);
+		$this->getLogger()->debug($message);
 	}
 
 	protected function onEnable() : void {
 		self::$instance = $this;
 		$this->saveDefaultConfig();
-
-		// Load configuration and register customizable permissions
 		$this->config = new ConfigManager($this);
 		$this->config->load();
 		$this->config->registerPermissions();
 
-		$this->debug("Starting dedicated asynchronous HTTP worker thread...");
-		// Initialize the dedicated async HTTP thread
+		$this->debug("debug_http_init");
 		$this->http = new HttpClient($this);
-		$this->http->start();
-		$this->httpStarted = true;
 
-		$this->debug("Initializing voice, user, audio, and position services...");
-		// Initialize services
+		$this->debug("debug_services_init");
+
 		$this->voiceService = new VoiceService($this, $this->config, $this->http);
 		$this->userManager = new UserManager($this, $this->config, $this->http, $this->voiceService);
 		$this->audioService = new AudioService($this, $this->config, $this->http);
@@ -170,7 +162,6 @@ final class BVC extends PluginBase {
 		$this->positionService = new PositionService($this, $this->config, $this->http);
 		$this->positionService->loadConfig();
 
-		// World UUID: generate if missing, persist to config
 		$worldUuid = $this->config->get('world_uuid', '');
 		if (!is_string($worldUuid)) {
 			$worldUuid = '';
@@ -180,11 +171,9 @@ final class BVC extends PluginBase {
 			$worldUuid = Util::generateUuid();
 			$this->config->set('world_uuid', $worldUuid);
 			$this->saveConfig();
-			$this->debug("Generated new world UUID: " . $worldUuid);
+			$this->debug("debug_uuid_generated", ['uuid' => $worldUuid]);
 		}
 		$this->positionService->setWorldUuid($worldUuid);
-
-		// Register events and command
 		$this->getServer()->getPluginManager()->registerEvents(new BVCListener($this, $this->audioService, $this->positionService), $this);
 		$this->command = new BVCCommand($this);
 		$this->getServer()->getCommandMap()->register('bvc', $this->command);
@@ -193,39 +182,30 @@ final class BVC extends PluginBase {
 		if (!is_int($pollIntervalValue)) {
 			$pollIntervalValue = 5;
 		}
+
 		$pollInterval = max(1, $pollIntervalValue);
-		$this->debug("Scheduling position polling every {$pollInterval} ticks...");
-		// Schedule position polling (asynchronous, batched)
+		$this->debug("debug_poll_scheduling", ['poll_interval' => (string) $pollInterval]);
+
+		// Schedule position polling (single POST roster per tick)
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() : void {
 			$this->positionService->pollPlayerPositions();
 		}), $pollInterval);
 
-		$this->debug("Scheduling audio disc tick (1 tick)...");
-		// Schedule audio disc tick (hopper insertion, block state sync)
-		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() : void {
-			$this->audioService->tick();
-		}), 1);
-
-		$this->getLogger()->debug('BVC PMMP bridge enabled on world UUID: ' . $worldUuid);
+		$this->getLogger()->debug($this->config->message('debug_bridge_enabled', ['uuid' => $worldUuid]));
 		if (!$this->isConfigured()) {
 			$this->getLogger()->warning('Set server_url and access_token in plugin_data/BVC/config.yml. BVC HTTP features are inactive.');
 		}
 	}
 
 	protected function onDisable() : void {
-		$this->debug("Plugin disabling: persisting active audio discs...");
-		// Persist active discs before shutting down
+		$this->debug("debug_disc_persisting");
 		$this->audioService->persistDiscs();
 
-		$this->debug("Ejecting active audio discs...");
-		// Stop all active audio events and eject discs
+		$this->debug("debug_disc_ejecting");
 		$this->audioService->ejectAllDiscs();
 
-		$this->debug("Stopping HTTP worker thread...");
-		// Stop the dedicated HTTP worker thread cleanly
-		if ($this->httpStarted) {
-			$this->http->stop();
-		}
+		$this->debug("debug_http_stopping");
+		$this->http->stop();
 
 		self::$instance = null;
 		$this->command = null;

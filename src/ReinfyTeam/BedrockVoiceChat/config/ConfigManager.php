@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -114,7 +111,7 @@ final class ConfigManager {
 			}
 		}
 
-		$this->plugin->debug("[ConfigManager] Configurations loaded. Permissions: " . count($this->permissions));
+		$this->plugin->debug("debug_config_loaded", ['count' => (string) count($this->permissions)]);
 	}
 
 	private function loadAndMigrateConfig() : void {
@@ -122,7 +119,7 @@ final class ConfigManager {
 		if (!file_exists($configFile)) {
 			$this->plugin->saveResource("config.yml", false);
 			$this->config = new Config($configFile, Config::YAML, []);
-			$this->plugin->debug("[ConfigManager] Created initial config.yml (v" . self::CURRENT_CONFIG_VERSION . ").");
+			$this->plugin->debug("debug_config_created", ['version' => (string) self::CURRENT_CONFIG_VERSION]);
 			return;
 		}
 
@@ -152,7 +149,7 @@ final class ConfigManager {
 				}
 			}
 		} else {
-			$this->plugin->debug("[ConfigManager] config.yml is up to date (v{$fileVersion}).");
+			$this->plugin->debug("debug_config_uptodate", ['version' => (string) $fileVersion]);
 		}
 	}
 
@@ -170,7 +167,7 @@ final class ConfigManager {
 				@rename($this->plugin->getDataFolder() . "messages.yml", $messagesPath);
 			}
 			$this->messages = new Config($messagesPath, Config::YAML, []);
-			$this->plugin->debug("[ConfigManager] Created initial {$this->messagesFile} (v" . self::CURRENT_MESSAGES_VERSION . ").");
+			$this->plugin->debug("debug_messages_created", ['messages_file' => $this->messagesFile, 'version' => (string) self::CURRENT_MESSAGES_VERSION]);
 			return;
 		}
 
@@ -200,7 +197,7 @@ final class ConfigManager {
 				}
 			}
 		} else {
-			$this->plugin->debug("[ConfigManager] {$this->messagesFile} is up to date (v{$fileVersion}).");
+			$this->plugin->debug("debug_messages_uptodate", ['messages_file' => $this->messagesFile, 'version' => (string) $fileVersion]);
 		}
 	}
 
@@ -239,7 +236,7 @@ final class ConfigManager {
 			} else {
 				$userRoot?->addChild($permName, true);
 			}
-			$this->plugin->debug("[ConfigManager] Registered permission '{$permName}' (opOnly=" . ($isOpOnly ? "true" : "false") . ")");
+			$this->plugin->debug("debug_permission_registered", ['permission' => $permName, 'op_only' => ($isOpOnly ? "true" : "false")]);
 		}
 	}
 
@@ -284,13 +281,24 @@ final class ConfigManager {
 
 	/**
 	 * Get a translated message with placeholder replacement.
+	 * All messages are universally prefixed with the `prefix` key from messages.yml.
 	 * @param array<string, string> $placeholders
 	 */
 	public function message(string $key, array $placeholders = []) : string {
 		$all = $this->messages->getAll();
+		$prefix = $all['prefix'] ?? '';
+		if (!is_string($prefix)) {
+			$prefix = '';
+		}
+		$prefix = str_replace('&', '§', $prefix);
+
+		if ($key === 'prefix') {
+			return $prefix;
+		}
+
 		$msg = $all[$key] ?? null;
 		if ($msg === null) {
-			$this->plugin->debug("[ConfigManager] Missing message key '{$key}', using key as fallback.");
+			$this->plugin->debug("debug_missing_message_key", ['key' => $key]);
 			$msg = $key;
 		} elseif (!is_string($msg)) {
 			$msg = $key;
@@ -298,6 +306,7 @@ final class ConfigManager {
 		foreach ($placeholders as $find => $replace) {
 			$msg = str_replace("{" . $find . "}", $replace, $msg);
 		}
-		return $msg;
+		$msg = str_replace('&', '§', $msg);
+		return $prefix . $msg;
 	}
 }

@@ -1,4 +1,4 @@
-# BedrockVoiceChat (BVC)
+# BVC-PM (BedrockVoiceChat Plugin for PMMP)
 
 [![Build](https://github.com/ReinfyTeam/BedrockVoiceChat/actions/workflows/build-phar.yml/badge.svg?branch=main&style=flat&label=Build)](https://github.com/ReinfyTeam/BedrockVoiceChat/actions/workflows/build-phar.yml)
 [![PocketMine-MP API](https://img.shields.io/badge/PMMP%20API-5.36.0-blue?style=flat)](https://pmmp.io/)
@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/ReinfyTeam/BedrockVoiceChat?style=flat)](LICENSE)
 [![Discord server online members](https://img.shields.io/discord/995936412031520839?label=Discord&logo=discord&logoColor=white&color=5865F2&style=flat)](https://discord.gg/7u7qKsvSxg)
 
-**BedrockVoiceChat** is a high-performance, fully asynchronous proximity voice chat bridge for **PocketMine-MP 5.36.0+** servers. Designed to handle 100+ concurrent players without causing server tick drops or main-thread lag.
+**BVC-PM** is a high-performance, fully asynchronous proximity voice chat bridge for **PocketMine-MP 5.36.0+** servers. Designed to handle 100+ concurrent players without causing server tick drops or main-thread lag.
 
 ---
 

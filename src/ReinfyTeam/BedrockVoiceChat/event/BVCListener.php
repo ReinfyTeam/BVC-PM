@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -93,7 +90,6 @@ final class BVCListener implements Listener {
 	public function onPlayerQuit(PlayerQuitEvent $event) : void {
 		$player = $event->getPlayer();
 		$this->positionService->unmarkDead($player);
-		$this->positionService->sendDisconnectUpdate($player);
 		$this->plugin->getVoiceService()->removePlayerState($player);
 		$this->plugin->getUserManager()->removeUser($player);
 	}

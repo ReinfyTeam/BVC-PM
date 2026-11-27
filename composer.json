@@ -27,12 +27,15 @@
             "ReinfyTeam\\BedrockVoiceChat\\": "src/ReinfyTeam/BedrockVoiceChat/"
         }
     },
-    "require-dev": {
-        "axolotl-pm/pocketmine-mp": "5.51.1",
+	"require-dev": {
+		"axolotl-pm/pocketmine-mp": "5.51.1",
+		"phpstan/phpstan": "^2.1",
+        "friendsofphp/php-cs-fixer": "^3.58"
+	},
+    "require": {
+		"reinfyteam/libpmcurl": "dev-main",
         "paroxity/commando": "dev-master",
         "muqsit/simple-packet-handler": "0.1.10",
-        "jojoe77777/libformapi": "dev-main",
-        "phpstan/phpstan": "^2.1",
-        "friendsofphp/php-cs-fixer": "^3.58"
+        "jojoe77777/libformapi": "dev-main"
 	}
 }

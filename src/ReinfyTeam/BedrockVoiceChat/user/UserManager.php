@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -107,7 +104,7 @@ final class UserManager {
 			$name = $player instanceof Player ? $player->getName() : $player;
 			$uuid = $player instanceof Player ? $player->getUniqueId()->toString() : null;
 			$this->users[$key] = new User($name, $uuid);
-			$this->plugin->debug("[UserManager] Cached user for '{$name}'");
+			$this->plugin->debug("debug_user_cached", ['name' => $name]);
 		}
 		return $this->users[$key];
 	}
@@ -126,7 +123,7 @@ final class UserManager {
 	public function removeUser(Player|string $player) : void {
 		$key = $this->resolveKey($player);
 		if (isset($this->users[$key])) {
-			$this->plugin->debug("[UserManager] Removed user '{$key}' from cache");
+			$this->plugin->debug("debug_user_removed", ['key' => $key]);
 			unset($this->users[$key]);
 		}
 	}

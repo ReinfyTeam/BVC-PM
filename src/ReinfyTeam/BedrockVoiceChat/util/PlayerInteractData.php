@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -40,18 +37,18 @@ use pocketmine\world\World;
  * Data carrier for jukebox right-click interactions.
  */
 final class PlayerInteractData {
-	public Player $player;
-	public Jukebox $block;
-	public World $world;
-	public Vector3 $position;
-	public \pocketmine\event\player\PlayerInteractEvent $event;
+	public readonly Player $player;
+	public readonly Jukebox $block;
+	public readonly World $world;
+	public readonly Vector3 $position;
+	public readonly \pocketmine\event\player\PlayerInteractEvent $event;
 
 	public function __construct(
 		Player $player,
 		Jukebox $block,
 		World $world,
 		Vector3 $position,
-		\pocketmine\event\player\PlayerInteractEvent $event
+		\pocketmine\event\player\PlayerInteractEvent $event,
 	) {
 		$this->player = $player;
 		$this->block = $block;

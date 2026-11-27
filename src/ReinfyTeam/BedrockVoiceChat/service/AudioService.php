@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -72,6 +69,10 @@ const DISC_STORAGE_FILE = 'active_discs.json';
 
 /**
  * Handles BVC music discs, jukebox interactions, and audio event lifecycle.
+ *
+ * Audio events are driven by jukebox interact/block-break events rather than
+ * a per-tick scan. Disc ejection is location-based: ejecting a disc always
+ * targets the jukebox block at the stored coordinates.
  */
 final class AudioService {
 	private BVC $plugin;
@@ -269,13 +270,14 @@ final class AudioService {
 
 		$audioId = $currentRecord !== null ? Util::getBvcAudioId($currentRecord) : null;
 		if ($audioId !== null) {
+			// Eject existing BVC disc from this jukebox (location-based)
 			$data->event->cancel();
-			$state = $this->activeDiscs[$key] ?? null;
 			$event = new JukeboxEjectAudioDiscEvent($player, $block, $audioId, $block->getPosition());
 			$event->call();
 			if ($event->isCancelled()) {
 				return;
 			}
+			$state = $this->activeDiscs[$key] ?? null;
 			if ($state instanceof AudioDisc && $state->hasEvent()) {
 				$this->deleteAudioEvent($state->eventId);
 			}
@@ -283,7 +285,7 @@ final class AudioService {
 			$this->persistDiscs();
 			$block->ejectRecord();
 			$world->setBlock($position, $block);
-			$this->plugin->debug("[AudioService] Ejected BVC disc at {$key}");
+			$this->plugin->debug("debug_disc_ejected", ['key' => $key]);
 			$player->sendMessage($this->config->message('disc_ejected'));
 			return;
 		}
@@ -317,7 +319,7 @@ final class AudioService {
 		$disc = new AudioDisc($key, $audioId, $world, (int) $position->x, (int) $position->y, (int) $position->z);
 		$this->activeDiscs[$key] = $disc;
 		$this->persistDiscs();
-		$this->plugin->debug("[AudioService] Jukebox loaded BVC disc '{$audioId}' at {$key}");
+		$this->plugin->debug("debug_disc_loaded", ['audio_id' => $audioId, 'key' => $key]);
 		$this->startAudioEvent($disc);
 		$player->sendMessage($this->config->message('disc_inserted'));
 	}
@@ -345,6 +347,12 @@ final class AudioService {
 			unset($this->activeDiscs[$key]);
 			$this->persistDiscs();
 		}
+		// Always eject any record from the jukebox at this location
+		$block = $world->getBlock($position);
+		if ($block instanceof Jukebox) {
+			$block->ejectRecord();
+			$world->setBlock($position, $block);
+		}
 	}
 
 	public function ejectBvcDisc(string $key) : void {
@@ -355,15 +363,18 @@ final class AudioService {
 		$world = $state->world;
 		$position = new Position($state->x, $state->y, $state->z, $world);
 		$block = $world->getBlock($position);
-		if ($block instanceof Jukebox && Util::getBvcAudioId($block->getRecord()) !== null) {
-			$event = new JukeboxEjectAudioDiscEvent(null, $block, $state->audioId, $position);
-			$event->call();
-			if ($event->isCancelled()) {
-				return;
+		if ($block instanceof Jukebox) {
+			$record = $block->getRecord();
+			if ($record !== null && Util::getBvcAudioId($record) !== null) {
+				$event = new JukeboxEjectAudioDiscEvent(null, $block, $state->audioId, $position);
+				$event->call();
+				if ($event->isCancelled()) {
+					return;
+				}
+				$block->ejectRecord();
+				$world->setBlock($position, $block);
+				$this->plugin->getLogger()->info('Auto-ejected BVC disc ' . $state->audioId . ' from ' . $key);
 			}
-			$block->ejectRecord();
-			$world->setBlock($position, $block);
-			$this->plugin->getLogger()->info('Auto-ejected BVC disc ' . $state->audioId . ' from ' . $key);
 		}
 		if ($state->hasEvent()) {
 			$this->deleteAudioEvent($state->eventId);
@@ -376,9 +387,7 @@ final class AudioService {
 		foreach (array_keys($this->activeDiscs) as $key) {
 			$this->ejectBvcDisc($key);
 		}
-		foreach (array_keys($this->activeDiscs) as $key) {
-			unset($this->activeDiscs[$key]);
-		}
+		$this->activeDiscs = [];
 		$this->persistDiscs();
 	}
 
@@ -410,7 +419,7 @@ final class AudioService {
 			$this->ejectBvcDisc($disc->key);
 			return;
 		}
-		$this->http->request('POST', $this->baseUrl() . '/api/audio/event', $this->headers(true), $body,
+		$this->http->post($this->baseUrl() . '/api/audio/event', $this->headers(true), $body,
 			function(int $status, string $responseBody, string $error) use ($disc) : void {
 				if ($status < 200 || $status >= 300) {
 					$this->plugin->getLogger()->warning('BVC audio play request failed (HTTP ' . $status . '): ' . $error);
@@ -454,27 +463,9 @@ final class AudioService {
 		if ($eventId === null || !$this->isConfigured()) {
 			return;
 		}
-		$this->http->request('DELETE', $this->baseUrl() . '/api/audio/event/' . rawurlencode($eventId), $this->headers(), null,
+		$this->http->delete($this->baseUrl() . '/api/audio/event/' . rawurlencode($eventId), $this->headers(),
 			static function(int $status, string $body, string $error) : void {
 				// Fire-and-forget delete
 			}, $this->httpTimeout);
-	}
-
-	/**
-	 * Per-tick maintenance: check adjacent hoppers for BVC discs and sync jukebox block state.
-	 * Mirrors main.js AudioComponentRegistry.onTick behavior.
-	 */
-	public function tick() : void {
-		foreach ($this->activeDiscs as $key => $disc) {
-			$block = $disc->world->getBlock(new Vector3($disc->x, $disc->y, $disc->z));
-			if ($block instanceof Jukebox) {
-				$record = $block->getRecord();
-				$hasRecord = $record !== null && Util::getBvcAudioId($record) !== null;
-				if (!$hasRecord) {
-					// Block no longer holds the disc — clean up
-					$this->ejectBvcDisc($key);
-				}
-			}
-		}
 	}
 }

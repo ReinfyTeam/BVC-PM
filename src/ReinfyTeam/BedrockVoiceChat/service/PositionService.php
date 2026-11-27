@@ -14,12 +14,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Zuri attempts to enforce "vanilla Minecraft" mechanics, as well as preventing
- * players from abusing weaknesses in Minecraft or its protocol, making your server
- * more safe. Organized in different sections, various checks are performed to test
- * players doing, covering a wide range including flying and speeding, fighting
- * hacks, fast block breaking and nukers, inventory hacks, chat spam and other types
- * of malicious behaviour.
+ * BedrockVoiceChat is a high-performance, fully asynchronous proximity voice chat
+ * bridge for PocketMine-MP 5.36.0+ servers. Designed to handle 100+ concurrent players
+ * without causing server tick drops or main-thread lag.
  *
  * @author ReinfyTeam
  * @link https://github.com/ReinfyTeam/
@@ -36,7 +33,6 @@ use ReinfyTeam\BedrockVoiceChat\BVC;
 use ReinfyTeam\BedrockVoiceChat\config\ConfigManager;
 use ReinfyTeam\BedrockVoiceChat\http\HttpClient;
 use ReinfyTeam\BedrockVoiceChat\util\Util;
-use function array_chunk;
 use function count;
 use function floor;
 use function is_array;
@@ -51,7 +47,9 @@ use function trim;
 
 /**
  * Periodically polls online player positions and sends them to the BVC backend.
- * Uses batching to handle 100+ players efficiently without blocking the main thread.
+ *
+ * The entire online roster is sent in a single POST each tick — the backend
+ * already handles coalescing, so no client-side batching is needed.
  */
 final class PositionService {
 	private BVC $plugin;
@@ -59,7 +57,6 @@ final class PositionService {
 	private HttpClient $http;
 
 	private int $minimumPlayers = 1;
-	private int $batchSize = 50;
 	private bool $enablePolling = true;
 	/** @var array<string, string> */
 	private array $dimensionMap = [];
@@ -70,7 +67,6 @@ final class PositionService {
 
 	private int $consecutiveFailures = 0;
 	private int $circuitOpenUntil = 0;
-	private bool $positionRequestPending = false;
 
 	public function __construct(BVC $plugin, ConfigManager $config, HttpClient $http) {
 		$this->plugin = $plugin;
@@ -81,8 +77,6 @@ final class PositionService {
 	public function loadConfig() : void {
 		$minimumPlayersValue = $this->config->get('minimum_players', 1);
 		$this->minimumPlayers = max(1, is_int($minimumPlayersValue) ? $minimumPlayersValue : 1);
-		$batchSizeValue = $this->config->getPerformance('position_batch_size', 50);
-		$this->batchSize = max(1, is_int($batchSizeValue) ? $batchSizeValue : 50);
 		$this->enablePolling = (bool) $this->config->getPerformance('enable_position_polling', true);
 		$rawDimensionMap = $this->config->get('dimension_map', []);
 		$this->dimensionMap = [];
@@ -110,60 +104,16 @@ final class PositionService {
 
 	public function markDead(Player $player) : void {
 		$this->deadPlayers[$player->getUniqueId()->toString()] = true;
-		$this->plugin->debug("[PositionService] Player marked dead: " . $player->getName());
+		$this->plugin->debug("debug_player_marked_dead", ['player' => $player->getName()]);
 	}
 
 	public function unmarkDead(Player $player) : void {
 		unset($this->deadPlayers[$player->getUniqueId()->toString()]);
-		$this->plugin->debug("[PositionService] Player unmarked dead: " . $player->getName());
-	}
-
-	/**
-	 * Send a disconnect/phantom update for a player who left, so the backend
-	 * stops routing audio for them (mirrors main.js fromDisconnectedPlayer).
-	 */
-	public function sendDisconnectUpdate(Player $player) : void {
-		if (!$this->isEnabled() || $this->worldUuid === '') {
-			return;
-		}
-		$name = $player->getName();
-		$this->plugin->debug("[PositionService] Sending disconnect position for {$name}");
-		$row = [
-			'name' => $name,
-			'dimension' => 'death',
-			'coordinates' => ['x' => -10000, 'y' => -10000, 'z' => -10000],
-			'deafen' => false,
-			'orientation' => ['x' => 0, 'y' => 0],
-			'spectator' => true,
-			'world_uuid' => $this->worldUuid
-		];
-		$baseUrlValue = $this->config->get('server_url', '');
-		if (!is_string($baseUrlValue)) {
-			$baseUrlValue = '';
-		}
-		$baseUrl = rtrim($baseUrlValue, '/');
-		$tokenValue = $this->config->get('access_token', '');
-		if (!is_string($tokenValue)) {
-			$tokenValue = '';
-		}
-		$headers = ['Authorization' => 'Bearer ' . trim($tokenValue), 'Accept' => 'application/json', 'Content-Type' => 'application/json'];
-		$timeoutValue = $this->config->get('http_timeout_seconds', 8);
-		if (!is_int($timeoutValue)) {
-			$timeoutValue = 8;
-		}
-		$timeout = max(1, $timeoutValue);
-		$body = json_encode(['game' => 'minecraft', 'players' => [$row]], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-		if (!is_string($body)) {
-			return;
-		}
-		$this->http->request('POST', $baseUrl . '/api/position', $headers, $body,
-			static function(int $status, string $body, string $error) : void {
-				// Fire-and-forget disconnect update
-			}, $timeout);
+		$this->plugin->debug("debug_player_unmarked_dead", ['player' => $player->getName()]);
 	}
 
 	public function pollPlayerPositions() : void {
-		if (!$this->isEnabled() || $this->worldUuid === '' || $this->positionRequestPending) {
+		if (!$this->isEnabled() || $this->worldUuid === '') {
 			return;
 		}
 		$players = $this->plugin->getServer()->getOnlinePlayers();
@@ -176,7 +126,6 @@ final class PositionService {
 			return;
 		}
 
-		// Process players in batches for large servers (100+ players)
 		/** @var array<string, mixed> $allRows */
 		$allRows = [];
 		foreach ($players as $player) {
@@ -201,19 +150,6 @@ final class PositionService {
 			];
 		}
 
-		// Send in batches
-		$batchSize = max(1, $this->batchSize);
-		$batches = array_chunk($allRows, $batchSize);
-		foreach ($batches as $batch) {
-			/** @var array<string, mixed> $batch */
-			$this->sendPositionBatch($batch);
-		}
-	}
-
-	/**
-	 * @param array<string, mixed> $rows
-	 */
-	private function sendPositionBatch(array $rows) : void {
 		$baseUrlValue = $this->config->get('server_url', '');
 		if (!is_string($baseUrlValue)) {
 			$baseUrlValue = '';
@@ -229,18 +165,14 @@ final class PositionService {
 			$timeoutValue = 8;
 		}
 		$timeout = max(1, $timeoutValue);
-
-		$this->positionRequestPending = true;
-		$this->plugin->debug("[PositionService] Sending position batch of " . count($rows) . " player(s)");
-		$body = json_encode(['game' => 'minecraft', 'players' => $rows], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+		$body = json_encode(['game' => 'minecraft', 'players' => $allRows], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 		if (!is_string($body)) {
-			$this->positionRequestPending = false;
 			return;
 		}
-		$this->http->request('POST', $baseUrl . '/api/position', $headers, $body,
+
+		$this->plugin->debug("debug_position_roster", ['count' => (string) count($allRows)]);
+		$this->http->post($baseUrl . '/api/position', $headers, $body,
 			function(int $status, string $body, string $error) : void {
-				$this->positionRequestPending = false;
-				$this->plugin->debug("[PositionService] Position batch returned: HTTP {$status}");
 				if ($status >= 200 && $status < 300) {
 					if ($this->consecutiveFailures >= 3) {
 						$this->plugin->getLogger()->info('BVC backend connection restored.');
@@ -257,7 +189,7 @@ final class PositionService {
 					$this->circuitOpenUntil = (int) floor(microtime(true) * 1000) + $delay;
 				}
 				if ($error !== '') {
-					$this->plugin->getLogger()->debug('BVC position request failed: ' . $error);
+					$this->plugin->debug("debug_position_failed", ['error' => $error]);
 				}
 			}, $timeout);
 	}
